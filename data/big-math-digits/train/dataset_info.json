@@ -1,0 +1,67 @@
+{
+  "builder_name": "parquet",
+  "citation": "",
+  "config_name": "default",
+  "dataset_name": "big-math-digits",
+  "dataset_size": 9958583,
+  "description": "",
+  "download_checksums": {
+    "hf://datasets/mehuldamani/big-math-digits@49eb2fa981a0deaa7fb5174a5aea9cba7dba9040/data/train-00000-of-00001.parquet": {
+      "num_bytes": 4210158,
+      "checksum": null
+    },
+    "hf://datasets/mehuldamani/big-math-digits@49eb2fa981a0deaa7fb5174a5aea9cba7dba9040/data/test-00000-of-00001.parquet": {
+      "num_bytes": 140760,
+      "checksum": null
+    }
+  },
+  "download_size": 4350918,
+  "features": {
+    "problem": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "answer": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "source": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "domain": {
+      "feature": {
+        "dtype": "string",
+        "_type": "Value"
+      },
+      "_type": "List"
+    },
+    "llama8b_solve_rate": {
+      "dtype": "float64",
+      "_type": "Value"
+    }
+  },
+  "homepage": "",
+  "license": "",
+  "size_in_bytes": 14309501,
+  "splits": {
+    "train": {
+      "name": "train",
+      "num_bytes": 9639018,
+      "num_examples": 30000,
+      "dataset_name": "big-math-digits"
+    },
+    "test": {
+      "name": "test",
+      "num_bytes": 319565,
+      "num_examples": 1000,
+      "dataset_name": "big-math-digits"
+    }
+  },
+  "version": {
+    "version_str": "0.0.0",
+    "major": 0,
+    "minor": 0,
+    "patch": 0
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "builder_name": "parquet",
+  "citation": "",
+  "config_name": "default",
+  "dataset_name": "commonsenseqa",
+  "dataset_size": 275766,
+  "description": "",
+  "download_checksums": {
+    "hf://datasets/mehuldamani/commonsenseqa@0dceb0111fc214f55fdab6e7641c90dd16909777/data/test-00000-of-00001.parquet": {
+      "num_bytes": 182264,
+      "checksum": null
+    }
+  },
+  "download_size": 182264,
+  "features": {
+    "id": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "question_concept": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "answerKey": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "problem": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "answer": {
+      "dtype": "string",
+      "_type": "Value"
+    }
+  },
+  "homepage": "",
+  "license": "",
+  "size_in_bytes": 458030,
+  "splits": {
+    "test": {
+      "name": "test",
+      "num_bytes": 275766,
+      "num_examples": 1221,
+      "dataset_name": "commonsenseqa"
+    }
+  },
+  "version": {
+    "version_str": "0.0.0",
+    "major": 0,
+    "minor": 0,
+    "patch": 0
+  }
+}

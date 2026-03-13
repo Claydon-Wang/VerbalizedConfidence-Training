@@ -1,0 +1,62 @@
+{
+  "builder_name": "parquet",
+  "citation": "",
+  "config_name": "default",
+  "dataset_name": "gpqa-eval",
+  "dataset_size": 417104,
+  "description": "",
+  "download_checksums": {
+    "hf://datasets/mehuldamani/gpqa-eval@5a5f2a83ca71fb5ce0140ab4c0f991a3625c446a/data/test-00000-of-00001.parquet": {
+      "num_bytes": 254360,
+      "checksum": null
+    }
+  },
+  "download_size": 254360,
+  "features": {
+    "Correct Answer": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "Incorrect Answer 1": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "Incorrect Answer 2": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "Incorrect Answer 3": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "problem": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "answer": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "difficulty": {
+      "dtype": "int64",
+      "_type": "Value"
+    }
+  },
+  "homepage": "",
+  "license": "",
+  "size_in_bytes": 671464,
+  "splits": {
+    "test": {
+      "name": "test",
+      "num_bytes": 417104,
+      "num_examples": 448,
+      "dataset_name": "gpqa-eval"
+    }
+  },
+  "version": {
+    "version_str": "0.0.0",
+    "major": 0,
+    "minor": 0,
+    "patch": 0
+  }
+}

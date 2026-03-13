@@ -1,0 +1,56 @@
+{
+  "builder_name": "parquet",
+  "citation": "",
+  "config_name": "default",
+  "dataset_name": "gsm8k",
+  "dataset_size": 4732172,
+  "description": "",
+  "download_checksums": {
+    "hf://datasets/mehuldamani/gsm8k@cb8ade1b699bed9d69a39960c947dd33d79b1f46/data/train-00000-of-00001.parquet": {
+      "num_bytes": 2326759,
+      "checksum": null
+    },
+    "hf://datasets/mehuldamani/gsm8k@cb8ade1b699bed9d69a39960c947dd33d79b1f46/data/test-00000-of-00001.parquet": {
+      "num_bytes": 423181,
+      "checksum": null
+    }
+  },
+  "download_size": 2749940,
+  "features": {
+    "problem": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "answer": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "solution": {
+      "dtype": "string",
+      "_type": "Value"
+    }
+  },
+  "homepage": "",
+  "license": "",
+  "size_in_bytes": 7482112,
+  "splits": {
+    "train": {
+      "name": "train",
+      "num_bytes": 4010180,
+      "num_examples": 7473,
+      "dataset_name": "gsm8k"
+    },
+    "test": {
+      "name": "test",
+      "num_bytes": 721992,
+      "num_examples": 1319,
+      "dataset_name": "gsm8k"
+    }
+  },
+  "version": {
+    "version_str": "0.0.0",
+    "major": 0,
+    "minor": 0,
+    "patch": 0
+  }
+}

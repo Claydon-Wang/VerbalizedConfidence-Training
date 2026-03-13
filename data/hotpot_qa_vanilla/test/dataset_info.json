@@ -1,0 +1,104 @@
+{
+  "builder_name": "parquet",
+  "citation": "",
+  "config_name": "default",
+  "dataset_name": "hotpot_qa-vanilla",
+  "dataset_size": 12379761,
+  "description": "",
+  "download_checksums": {
+    "hf://datasets/mehuldamani/hotpot_qa-vanilla@21637c501df260e2220ddec6bb1df65873b0131a/data/test-00000-of-00001.parquet": {
+      "num_bytes": 6973294,
+      "checksum": null
+    }
+  },
+  "download_size": 6973294,
+  "features": {
+    "id": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "answer": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "type": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "level": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "supporting_facts": {
+      "title": {
+        "feature": {
+          "dtype": "string",
+          "_type": "Value"
+        },
+        "_type": "List"
+      },
+      "sent_id": {
+        "feature": {
+          "dtype": "int32",
+          "_type": "Value"
+        },
+        "_type": "List"
+      }
+    },
+    "context": {
+      "title": {
+        "feature": {
+          "dtype": "string",
+          "_type": "Value"
+        },
+        "_type": "List"
+      },
+      "sentences": {
+        "feature": {
+          "feature": {
+            "dtype": "string",
+            "_type": "Value"
+          },
+          "_type": "List"
+        },
+        "_type": "List"
+      }
+    },
+    "problem": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "source": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "gold_removed": {
+      "dtype": "int64",
+      "_type": "Value"
+    },
+    "removed_titles": {
+      "feature": {
+        "dtype": "null",
+        "_type": "Value"
+      },
+      "_type": "List"
+    }
+  },
+  "homepage": "",
+  "license": "",
+  "size_in_bytes": 19353055,
+  "splits": {
+    "test": {
+      "name": "test",
+      "num_bytes": 12379761,
+      "num_examples": 1000,
+      "dataset_name": "hotpot_qa-vanilla"
+    }
+  },
+  "version": {
+    "version_str": "0.0.0",
+    "major": 0,
+    "minor": 0,
+    "patch": 0
+  }
+}

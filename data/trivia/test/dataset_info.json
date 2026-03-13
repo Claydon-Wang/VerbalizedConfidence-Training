@@ -1,0 +1,49 @@
+{
+  "builder_name": "parquet",
+  "citation": "",
+  "config_name": "default",
+  "dataset_name": "trivia",
+  "dataset_size": 305462,
+  "description": "",
+  "download_checksums": {
+    "hf://datasets/mehuldamani/trivia@8757a3143245f5eb723fa7239062e14b400bab66/data/test-00000-of-00001.parquet": {
+      "num_bytes": 191277,
+      "checksum": null
+    }
+  },
+  "download_size": 191277,
+  "features": {
+    "question": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "question_id": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "answer": {
+      "feature": {
+        "dtype": "string",
+        "_type": "Value"
+      },
+      "_type": "List"
+    }
+  },
+  "homepage": "",
+  "license": "",
+  "size_in_bytes": 496739,
+  "splits": {
+    "test": {
+      "name": "test",
+      "num_bytes": 305462,
+      "num_examples": 2000,
+      "dataset_name": "trivia"
+    }
+  },
+  "version": {
+    "version_str": "0.0.0",
+    "major": 0,
+    "minor": 0,
+    "patch": 0
+  }
+}
