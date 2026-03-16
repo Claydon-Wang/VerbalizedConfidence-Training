@@ -1,0 +1,39 @@
+[ 
+{
+    "dataset_name": "data/trivia",
+    "hash_key": "question",
+    "store_name": "logs/eval/Hotpot-models-fresh/trivia",
+    "gpu_memory_utilization":0.9,
+    "log_path": "logs/eval/Hotpot-models-fresh/trivia"
+}, 
+{   "name":"Base", 
+"model": "Qwen/Qwen2.5-1.5B",
+"check_fn": "llm_confidence_verifier",
+"sys_prompt_name": "tac",
+"vllm_task": ["confidence_at_end","ans_at_end"]
+},
+{   "name":"Instruct", 
+"model": "Qwen/Qwen2.5-1.5B-Instruct",
+"check_fn": "llm_confidence_verifier",
+"sys_prompt_name": "tac",
+"vllm_task": ["confidence_at_end","ans_at_end"]
+},
+{   "name":"RLVR", 
+"model": "logs/train/RLVR-hotpot",
+"check_fn": "llm_confidence_verifier",
+"sys_prompt_name": "gen",
+"vllm_task": ["confidence_at_end","ans_at_end"]
+},
+{   "name":"RLCR", 
+"model": "logs/train/RLCR-hotpot",
+"check_fn": "llm_confidence_verifier",
+"sys_prompt_name": "tabc_long",
+"vllm_task": ["confidence_at_end","ans_at_end"]
+},
+{   "name":"RLCR_Instruct", 
+"model": "logs/train/RLCR-Instruct-hotpot",
+"check_fn": "llm_confidence_verifier",
+"sys_prompt_name": "tabc_long",
+"vllm_task": ["confidence_at_end","ans_at_end"]
+}
+]

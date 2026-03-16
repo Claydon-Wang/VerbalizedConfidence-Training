@@ -160,7 +160,19 @@ cython_debug/
 #.idea/
 
 .vscode/
+
+# Experiment artifacts
 wandb/
-data
-results
-logs
+swanlog/
+logs/
+temp/
+
+# Local datasets and caches
+data/
+
+# Legacy output paths kept ignored for safety
+results/
+
+# Python build and cache outputs
+*.pyo
+*.pyd

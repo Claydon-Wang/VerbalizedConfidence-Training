@@ -72,7 +72,7 @@ All models and datasets are available at this [RLCR HuggingFace Collection.](htt
 
 To run RLCR on hotpot:
 ```bash
-CUDA_VISIBLE_DEVICES=0,1,2,3 accelerate launch --num_processes 4 --config_file deepspeed.yaml rl_runner.py --config configs/Qwen-7B/hotpot/RLCR.yaml
+CUDA_VISIBLE_DEVICES=0,1,2,3 accelerate launch --num_processes 4 --config_file deepspeed.yaml -m src.train.runner --config src/train/configs/Qwen-7B/hotpot/RLCR.yaml
 ```
 
 ### 📝 Notes
@@ -101,7 +101,7 @@ We welcome suggestions and contributions!
 To run inference with our trained RLCR model on a single GPU:
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 inference_example.py
+CUDA_VISIBLE_DEVICES=0 python -m src.eval.inference_example
 ```
 
 ### 📚 Available Models
@@ -121,24 +121,40 @@ CUDA_VISIBLE_DEVICES=0 inference_example.py
 Run evaluation on a dataset using a config:
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python evaluation.py --config eval_configs/Hotpot-models/trivia.json
+CUDA_VISIBLE_DEVICES=0 python -m src.eval.evaluation --config src/eval/configs/Hotpot-models/trivia.json
 ```
 
 For a full eval suite on a single GPU (We already provide the outputs/results from this):
 
 ```bash
-bash eval_runs.sh
+bash scripts/eval.sh
 ```
 
 ### 📝 Notes
 
-- Evaluation outputs get logged to eval_outputs, metrics get logged to results/ . 
-- To evaluate on new datasets/models, add them to config files inside `eval_configs/`.
+- Evaluation outputs and metrics are both stored under `logs/eval/`.
+- Training checkpoints and trainer logs are stored under `logs/train/`.
+- Local experiment tracking files for `wandb` and `swanlab` are stored under `temp/exp_tracking/`.
+- To evaluate on new datasets/models, add them to config files inside `src/eval/configs/`.
+- To add or update training runs, edit configs inside `src/train/configs/`.
 - Default evaluation uses `temperature = 0` and `max_tokens = 4096`.
 - Currently supported evaluation functions:
   - **Exact Match** (Used for hotpotqa)
   - **Math Verify** (Used for all math datasets)
   - **LLM-as-a-Judge** (Used for trivia, simpleqa, commonsenseqa, gpqa)
+
+## Project Structure
+
+```text
+src/
+  common/    shared prompts and dataset processing
+  train/     training code and train configs
+  eval/      evaluation code, eval configs, inference example
+logs/
+  train/     checkpoints and train-side outputs
+  eval/      evaluation datasets and metrics
+scripts/     runnable shell entrypoints
+```
 
 ---
 
