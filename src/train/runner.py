@@ -1,12 +1,14 @@
 from src.train.arguments import GRPOScriptArguments, GRPOConfig, ModelConfig
-from trl import TrlParser, get_peft_config
+from src.train.config_utils import build_train_config, split_config_dict
+from trl import get_peft_config
 from transformers import set_seed
+import argparse
 import logging
 import transformers
 import datasets 
 from datasets import load_dataset
 import sys
-import os 
+import os
 from transformers.trainer_utils import get_last_checkpoint
 from src.train.reward_fns import (
     accuracy_reward,
@@ -112,6 +114,19 @@ def configure_tracking(training_args):
 
     training_args.report_to = report_to
 
+
+def load_config(argv):
+    pre_parser = argparse.ArgumentParser(add_help=False)
+    pre_parser.add_argument("--dataset")
+    pre_parser.add_argument("--method")
+    pre_parser.add_argument("--model")
+    known_args, _ = pre_parser.parse_known_args(argv[1:])
+
+    if not all([known_args.dataset, known_args.method, known_args.model]):
+        raise ValueError("Training requires --dataset <Class> --method <Class> --model <Class>")
+
+    return split_config_dict(build_train_config(known_args.dataset, known_args.method, known_args.model))
+
 def main(script_args, training_args, model_args):
     set_seed(training_args.seed)
     logger_setup(script_args, training_args, model_args) 
@@ -207,6 +222,5 @@ def main(script_args, training_args, model_args):
 
 
 if __name__ == "__main__":
-    parser = TrlParser((GRPOScriptArguments, GRPOConfig, ModelConfig))
-    script_args, training_args, model_args = parser.parse_args_and_config()
+    script_args, training_args, model_args = load_config(sys.argv)
     main(script_args, training_args, model_args)

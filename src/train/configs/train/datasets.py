@@ -1,0 +1,29 @@
+from dataclasses import dataclass
+
+from src.train.configs.train.base import TrainConfig
+
+
+@dataclass
+class Hotpot(TrainConfig):
+    dataset_name: str = "mehuldamani/hotpot_qa"
+    max_prompt_length: int = 3072
+    max_completion_length: int = 1536
+    per_device_train_batch_size: int = 8
+    per_device_eval_batch_size: int = 32
+    num_train_epochs: float = 1
+    learning_rate: float = 1e-6
+    warmup_ratio: float = 0.05
+
+
+@dataclass
+class Math(TrainConfig):
+    dataset_name: str = "mehuldamani/big-math-digits"
+    max_prompt_length: int = 1024
+    max_completion_length: int = 4096
+    per_device_train_batch_size: int = 6
+    per_device_eval_batch_size: int = 32
+    num_train_epochs: float = 0.5
+    learning_rate: float = 5e-6
+    lr_scheduler_type: str = "linear"
+    mask_truncated_completions: bool = True
+    warmup_ratio: float = 0.20

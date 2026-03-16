@@ -61,7 +61,7 @@ This keeps the existing `wandb` logging code working while routing the run to Sw
 ### Deepspeed & Accelerate Setup
 
 Ensure `deepspeed` and `accelerate` are properly configured for the available hardware ([guide](https://huggingface.co/docs/accelerate/en/index)). 
-We provide a deepspeed.yaml config for 4 gpus. 
+We provide a launcher config at `src/train/configs/launch/deepspeed.yaml` for 4 GPUs. 
 
 ### HuggingFace Models and Data
 All models and datasets are available at this [RLCR HuggingFace Collection.](https://huggingface.co/collections/mehuldamani/rlcr-68912f9731b0bce30e4cc8c0)
@@ -72,14 +72,15 @@ All models and datasets are available at this [RLCR HuggingFace Collection.](htt
 
 To run RLCR on hotpot:
 ```bash
-CUDA_VISIBLE_DEVICES=0,1,2,3 accelerate launch --num_processes 4 --config_file deepspeed.yaml -m src.train.runner --config src/train/configs/Qwen-7B/hotpot/RLCR.yaml
+CUDA_VISIBLE_DEVICES=0,1,2,3 accelerate launch --num_processes 4 --config_file src/train/configs/launch/deepspeed.yaml -m src.train.runner --dataset Hotpot --method RLCR --model Qwen25_7B
 ```
 
 ### 📝 Notes
 
 - Wandb logs from reproduced runs available [here](https://wandb.ai/mehuldamani/RLCR?nw=nwusermehuldamani). Intermediate generations are also logged and are useful for debugging. 
 - Additional training scripts are available in `train_runs.sh`.
-- All training configurations are defined in the `configs/` directory. New configs can be added to support custom training setups.
+- Train config classes live in `src/train/configs/train/`, split into dataset, method, and model registries.
+- Launch configs for accelerate/deepspeed live in `src/train/configs/launch/`.
 - **Compute details**:
   - We ran HotpotQA experiments on **4×A100 GPUs**
   - Math experiments were run on **6×A100 GPUs**
@@ -136,7 +137,7 @@ bash scripts/eval.sh
 - Training checkpoints and trainer logs are stored under `logs/train/`.
 - Local experiment tracking files for `wandb` and `swanlab` are stored under `temp/exp_tracking/`.
 - To evaluate on new datasets/models, add them to config files inside `src/eval/configs/`.
-- To add or update training runs, edit configs inside `src/train/configs/`.
+- To add or update training runs, edit Python config classes inside `src/train/configs/train/`.
 - Default evaluation uses `temperature = 0` and `max_tokens = 4096`.
 - Currently supported evaluation functions:
   - **Exact Match** (Used for hotpotqa)
@@ -148,7 +149,8 @@ bash scripts/eval.sh
 ```text
 src/
   common/    shared prompts and dataset processing
-  train/     training code and train configs
+  train/     training code
+    configs/ train configs and launch configs
   eval/      evaluation code, eval configs, inference example
 logs/
   train/     checkpoints and train-side outputs
