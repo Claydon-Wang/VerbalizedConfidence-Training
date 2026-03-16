@@ -1,7 +1,7 @@
 ```bash
 conda create -n rl python=3.10
 pip install -r requirements.txt -i https://mirrors.cloud.tencent.com/pypi/simple/
-pip install flash-attn==2.7.4.post1 -i https://mirrors.cloud.tencent.com/pypi/simple/
+pip install flash-attn==2.7.4.post1 --no-build-isolation --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 
 ```
