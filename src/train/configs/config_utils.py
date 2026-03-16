@@ -2,7 +2,7 @@ import importlib
 import os
 from dataclasses import asdict, fields
 
-from src.train.arguments import GRPOScriptArguments, GRPOConfig, ModelConfig
+from src.train.configs.config_schema import GRPOScriptArguments, GRPOConfig, ModelConfig
 
 
 def load_config_class(module_suffix, class_name):
@@ -19,12 +19,12 @@ def config_to_dict(config_obj):
 
 
 def update_config(config_dict, dataset_name, method_name, model_name):
-    # dataset_slug = dataset_name.lower()
-    # method_slug = method_name.lower()
-    # model_slug = model_name.replace("_", "-").lower()
-    config_dict["run_name"] = f"{dataset_name}-{method_name}-{model_name}"
+    dataset_slug = dataset_name.lower()
+    method_slug = method_name.lower()
+    model_slug = model_name.replace("_", "-").lower()
+    config_dict["run_name"] = f"{dataset_slug}-{method_slug}-{model_slug}"
     logs_root = config_dict.pop("logs_root", "logs/train")
-    config_dict["output_dir"] = os.path.join(logs_root, dataset_name, method_name, model_name)
+    config_dict["output_dir"] = os.path.join(logs_root, dataset_slug, method_slug, model_name.lower())
     return config_dict
 
 

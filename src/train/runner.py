@@ -1,5 +1,5 @@
-from src.train.arguments import GRPOScriptArguments, GRPOConfig, ModelConfig
-from src.train.config_utils import build_train_config, split_config_dict
+from src.train.configs.config_schema import GRPOScriptArguments, GRPOConfig, ModelConfig
+from src.train.configs.config_utils import build_train_config, split_config_dict
 from trl import get_peft_config
 from transformers import set_seed
 import argparse
@@ -10,7 +10,7 @@ from datasets import load_dataset
 import sys
 import os
 from transformers.trainer_utils import get_last_checkpoint
-from src.train.reward_fns import (
+from src.train.rewards.reward_fns import (
     accuracy_reward,
     brier_reward,
     confidence_one_or_zero,
@@ -18,7 +18,7 @@ from src.train.reward_fns import (
     mean_confidence_reward,
 )
 from src.common.dataset_processing import process_dataset
-from src.train.grpo_trainer import CustomTrainer
+from src.train.trainers.grpo_trainer import CustomTrainer
 import torch
 from functools import partial
 
