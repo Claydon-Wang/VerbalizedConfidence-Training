@@ -1,7 +1,8 @@
-from src.train.rewards.reward_fns import (
+from src.train.rewards.reward_functions import (
     accuracy_reward,
     brier_reward,
     confidence_one_or_zero,
     format_reward,
     mean_confidence_reward,
 )
+from src.train.rewards.reward_factory import build_reward_function, build_reward_functions

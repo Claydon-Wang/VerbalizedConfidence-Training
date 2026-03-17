@@ -28,7 +28,7 @@ class TrainConfig:
     eval_strategy: str = "steps"
     eval_steps: int = 50
     eval_on_start: bool = False
-    format_pattern: str = "ta"
+    format_pattern: str = "think_answer"
     gradient_accumulation_steps: int = 64
     gradient_checkpointing: bool = True
     gradient_checkpointing_kwargs: dict[str, Any] = field(default_factory=lambda: {"use_reentrant": False})
@@ -57,8 +57,8 @@ class TrainConfig:
     save_total_limit: int = 1
     scale_rewards: bool = False
     seed: int = 43
-    sys_prompt_name: str = "gen"
-    task_spec: str = "gen"
+    sys_prompt_name: str = "think_answer"
+    task_spec: str = "generation"
     temperature: float = 0.7
     use_vllm: bool = True
     vllm_device: str = "auto"

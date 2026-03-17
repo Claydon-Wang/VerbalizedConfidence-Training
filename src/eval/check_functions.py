@@ -72,7 +72,13 @@ def gen_correctness_reward(completions, answer, **kwargs):
 
     return matches
 
-def confidence_verifier(local_dataset, config, format_fn="confidence_format", format_pattern="tabc", **kwargs):
+def confidence_verifier(
+    local_dataset,
+    config,
+    format_fn="confidence_format",
+    format_pattern="think_answer_analysis_confidence",
+    **kwargs,
+):
     label_dict = {f"{config.name}-evals": []}
     evals = []
     c_lengths = []

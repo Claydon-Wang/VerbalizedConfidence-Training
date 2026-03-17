@@ -72,7 +72,7 @@ All models and datasets are available at this [RLCR HuggingFace Collection.](htt
 
 To run RLCR on hotpot:
 ```bash
-CUDA_VISIBLE_DEVICES=0,1,2,3 accelerate launch --num_processes 4 --config_file src/train/configs/launch/deepspeed.yaml -m src.train.runner --dataset Hotpot --method RLCR --model Qwen25_7B
+CUDA_VISIBLE_DEVICES=0,1,2,3 accelerate launch --num_processes 4 --config_file src/train/configs/launch/deepspeed.yaml -m src.train.train_main --dataset Hotpot --method RLCR --model Qwen25_7B
 ```
 
 ### 📝 Notes

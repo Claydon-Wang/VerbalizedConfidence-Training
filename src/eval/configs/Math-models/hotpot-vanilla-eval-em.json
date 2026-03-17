@@ -10,38 +10,38 @@
 {   "name":"Base", 
 "model": "Qwen/Qwen2.5-7B",
 "check_fn": "confidence_verifier",
-"sys_prompt_name": "tac",
+"sys_prompt_name": "think_answer_confidence",
 "vllm_task": ["confidence_at_end","ans_at_end"]
 },
 {   "name":"RLVR", 
 "model": "mehuldamani/big-math-digits-v2-correctness",
 "check_fn": "confidence_verifier",
-"sys_prompt_name": "gen",
+"sys_prompt_name": "think_answer",
 "vllm_task": ["confidence_at_end","ans_at_end"]
 },
 {   "name":"RLVR-Classifier", 
 "model": "mehuldamani/big-math-digits-v2-correctness",
 "class_model": "mehuldamani/orm-big-math-digits-v2-correctness",
 "check_fn": "confidence_verifier",
-"sys_prompt_name": "gen",
+"sys_prompt_name": "think_answer",
 "vllm_task": ["gen_then_classify","ans_at_end"]
 },
 {   "name":"Answer-Prob", 
 "model": "mehuldamani/big-math-digits-v2-correctness",
 "check_fn": "confidence_verifier",
-"sys_prompt_name": "gen",
+"sys_prompt_name": "think_answer",
 "vllm_task": ["confidence_prob","ans_at_end"]
 },
 {   "name":"RLCR", 
 "model": "mehuldamani/big-math-digits-v2-brier-base-tabc",
 "check_fn": "confidence_verifier",
-"sys_prompt_name": "tabc",
+"sys_prompt_name": "think_answer_analysis_confidence",
 "vllm_task": ["confidence_at_end","ans_at_end"]
 },
 {   "name":"SFT-RLCR", 
 "model": "mehuldamani/big-math-digits-v2-brier",
 "check_fn": "confidence_verifier",
-"sys_prompt_name": "tabc",
+"sys_prompt_name": "think_answer_analysis_confidence",
 "vllm_task": ["confidence_at_end","ans_at_end"]
 }
 

@@ -34,9 +34,9 @@ class GRPOScriptArguments(ScriptArguments):
     dataset_train_split: str = field(default="train", metadata={"help": "Dataset split to use for training."})
     dataset_test_split: str = field(default="test", metadata={"help": "Dataset split to use for evaluation."})
 
-    sys_prompt_name: str = field(default="ver", metadata={"help": "System prompt name."})
+    sys_prompt_name: str = field(default="think_answer", metadata={"help": "System prompt name."})
     trainer_name: str = field(default="rlvr", metadata={"help": "Trainer implementation name."})
-    task_spec: str = field(default="gen", metadata={"help": "Task specification."})
+    task_spec: str = field(default="generation", metadata={"help": "Task specification."})
     set_pad_token: Optional[int] = field(default=None, metadata={"help": "Set the pad token to this id"})
 
     orm_key: Optional[str] = field(
@@ -155,7 +155,7 @@ class GRPOConfig(trl.GRPOConfig):
         },
     )
     format_pattern: str = field(
-        default="ta",
+        default="think_answer",
         metadata={"help": "The output format pattern used by reward functions."},
     )
     num_generations: Optional[int] = field(

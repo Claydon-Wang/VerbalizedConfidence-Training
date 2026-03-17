@@ -18,7 +18,6 @@ import warnings
 from collections import defaultdict, deque
 from collections.abc import Sized
 from contextlib import nullcontext
-from functools import partial
 from typing import Any, Callable, Optional, Union
 
 import datasets
@@ -72,13 +71,7 @@ from src.train.trainers.trainer_utils import (
     split_tensor_dict,
 )
 from src.train.trainers.base_trainer import BaseTrainer
-from src.train.rewards.reward_fns import (
-    accuracy_reward,
-    brier_reward,
-    confidence_one_or_zero,
-    format_reward,
-    mean_confidence_reward,
-)
+from src.train.rewards.reward_factory import build_reward_functions
 import gc
 
 if is_peft_available():
@@ -259,7 +252,7 @@ class BaseGRPOTrainer(Trainer, BaseTrainer):
             self.optimization_rewards, self.monitoring_rewards
         )
         self.reward_func_names = self.optimization_reward_names + self.monitoring_reward_names
-        reward_funcs = self.build_reward_functions(args, self.reward_func_names)
+        reward_funcs = build_reward_functions(self.reward_func_names, args.format_pattern)
         for i, reward_func in enumerate(reward_funcs):
             if isinstance(reward_func, str):
                 reward_funcs[i] = AutoModelForSequenceClassification.from_pretrained(
@@ -409,22 +402,6 @@ class BaseGRPOTrainer(Trainer, BaseTrainer):
                     self.reward_functions[reward_name] = self.accelerator.prepare_model(
                         reward_func, evaluation_mode=True, device_placement=True
                     )
-
-    def build_reward_function(self, args, reward_name: str):
-        if reward_name == "format":
-            return partial(format_reward, format_pattern=args.format_pattern)
-        if reward_name == "accuracy":
-            return partial(accuracy_reward, format_pattern=args.format_pattern)
-        if reward_name == "brier":
-            return partial(brier_reward, format_pattern=args.format_pattern)
-        if reward_name == "mean_confidence":
-            return mean_confidence_reward
-        if reward_name == "confidence_one_or_zero":
-            return confidence_one_or_zero
-        raise ValueError(f"Unknown reward name: {reward_name}")
-
-    def build_reward_functions(self, args, reward_names: list[str]):
-        return [self.build_reward_function(args, reward_name) for reward_name in reward_names]
 
     def run_reward_function(
         self,

@@ -4,7 +4,7 @@ import numpy as np
 def process_dataset(dataset, script_args):
     sys_prompt = get_sys_prompt(script_args.sys_prompt_name) 
 
-    if script_args.task_spec == "gen":
+    if script_args.task_spec == "generation":
         dataset = make_generation_dataset(dataset, sys_prompt)
 
     return dataset

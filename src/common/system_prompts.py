@@ -48,15 +48,15 @@ DEEPSEEK_VERIFIER_PROMPT = (
 
 
 def get_sys_prompt(sys_prompt_name):
-    if sys_prompt_name == "gen":
+    if sys_prompt_name == "think_answer":
         return GEN_PROMPT
-    elif sys_prompt_name == "tac":
+    elif sys_prompt_name == "think_answer_confidence":
         return TAC_PROMPT
-    elif sys_prompt_name == "tabc":
+    elif sys_prompt_name == "think_answer_analysis_confidence":
         return TABC_PROMPT
-    elif sys_prompt_name == "tabc_long":
+    elif sys_prompt_name == "think_answer_analysis_confidence_detailed":
         return TABC_LONG_PROMPT
-    elif sys_prompt_name == "deepseek_verifier":
+    elif sys_prompt_name == "solution_verifier":
         return DEEPSEEK_VERIFIER_PROMPT
     else:
         raise ValueError(f"Invalid system prompt name: {sys_prompt_name}")

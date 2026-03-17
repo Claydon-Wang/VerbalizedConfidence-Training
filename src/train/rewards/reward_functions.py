@@ -1,7 +1,5 @@
-import math
 import re
 from math_verify import verify,parse
-import numpy as np 
 import string
 
 def normalize_answer(s):
@@ -27,14 +25,16 @@ def exact_match_score(prediction, ground_truth):
 
 def format_reward(format_pattern,completions, **kwargs):
     """Reward function that checks if the completion has a specific format."""
-    if format_pattern == "tbac":
+    if format_pattern == "think_analysis_answer_confidence":
         pattern = r".*?</think>\s*<analysis>.*?</analysis>\s*<answer>.*?</answer>\s*<confidence>.*?</confidence>\s*\Z"
-    elif format_pattern == "ta":
+    elif format_pattern == "think_answer":
         pattern = r".*?</think>\s*<answer>.*?</answer>\s*\Z"
-    elif format_pattern == "tac":
+    elif format_pattern == "think_answer_confidence":
         pattern = r".*?</think>\s*<answer>.*?</answer>\s*<confidence>.*?</confidence>\s*\Z" 
-    elif format_pattern == "tabc":
+    elif format_pattern == "think_answer_analysis_confidence":
         pattern = r".*?</think>\s*<answer>.*?</answer>\s*<analysis>.*?</analysis>\s*<confidence>.*?</confidence>\s*\Z"
+    else:
+        raise ValueError(f"Invalid format pattern: {format_pattern}")
     confidence_pattern = r"<confidence>(.*?)</confidence>"
 
     completion_contents = [completion[0]["content"] for completion in completions]
@@ -45,7 +45,7 @@ def format_reward(format_pattern,completions, **kwargs):
     for i,match in enumerate(matches):
         if match:
             content = completion_contents[i]
-            if 'c' in format_pattern:
+            if "confidence" in format_pattern:
                 confidence_matches = re.findall(confidence_pattern, content, re.DOTALL | re.MULTILINE)  # Get all <confidence>...</confidence> occurrences
                 last_confidence = confidence_matches[-1] if confidence_matches else ""  # Get the last confidence, if exists
                 if last_confidence == "":
@@ -157,8 +157,6 @@ def confidence_one_or_zero(completions,answer, **kwargs):
             else:
                 matches.append(0.0)
     return matches
-
-
 if __name__ == '__main__':
     s = "    h   ello whatever </think> <answer> The number of non-empty subsets 31 </answer> <confidence> 0.9 </confidence>   \n \n  "
  
