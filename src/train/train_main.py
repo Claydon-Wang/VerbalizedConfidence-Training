@@ -4,42 +4,18 @@ from trl import get_peft_config
 from transformers import set_seed
 import argparse
 import logging
-import transformers
-import datasets 
 from datasets import load_dataset
 import sys
 import os
 from transformers.trainer_utils import get_last_checkpoint
 from src.common.dataset_processing import process_dataset
+from src.train.logger import append_train_summary_csv, configure_tracking, logger_setup
 from src.train.trainers.trainer_registry import build_trainer
 import torch
 
 
 logger = logging.getLogger(__name__)
 TRACKING_ROOT = os.path.abspath("temp/exp_tracking")
-
-
-def logger_setup(script_args, training_args, model_args):
-    logging.basicConfig(
-        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-        handlers=[logging.StreamHandler(sys.stdout)],
-    )
-    log_level = training_args.get_process_log_level()
-    logger.setLevel(log_level)
-    datasets.utils.logging.set_verbosity(log_level)
-    transformers.utils.logging.set_verbosity(log_level)
-    transformers.utils.logging.enable_default_handler()
-    transformers.utils.logging.enable_explicit_format()
-
-    # Log on each process a small summary
-    logger.warning(
-        f"Process rank: {training_args.local_rank}, device: {training_args.device}, n_gpu: {training_args.n_gpu}"
-        + f" distributed training: {bool(training_args.local_rank != -1)}, 16-bits training: {training_args.fp16}"
-    )
-    logger.info(f"Model parameters {model_args}")
-    logger.info(f"Script parameters {script_args}")
-    logger.info(f"Training parameters {training_args}")
 
 def model_init(model_args, training_args):
     logger.info("*** Initializing model kwargs ***")
@@ -54,58 +30,6 @@ def model_init(model_args, training_args):
         use_cache=False if training_args.gradient_checkpointing else True,
     )
     return model_kwargs
-
-
-def normalize_report_to(report_to):
-    if report_to is None:
-        return []
-    if isinstance(report_to, str):
-        return [] if report_to == "none" else [report_to]
-    return list(report_to)
-
-
-def configure_tracking_dirs():
-    os.makedirs(TRACKING_ROOT, exist_ok=True)
-
-    wandb_root = os.path.join(TRACKING_ROOT, "wandb")
-    swanlab_root = os.path.join(TRACKING_ROOT, "swanlab")
-
-    os.makedirs(wandb_root, exist_ok=True)
-    os.makedirs(swanlab_root, exist_ok=True)
-
-    os.environ["WANDB_DIR"] = wandb_root
-    os.environ.setdefault("WANDB_CACHE_DIR", os.path.join(wandb_root, "cache"))
-
-    # SwanLab may be installed in a different environment, so set both common path variables.
-    os.environ["SWANLAB_LOG_DIR"] = swanlab_root
-    os.environ["SWANLAB_WORKDIR"] = swanlab_root
-
-
-def configure_tracking(training_args):
-    report_to = normalize_report_to(training_args.report_to)
-
-    if "swanlab" in report_to:
-        try:
-            import swanlab
-        except ImportError as exc:
-            raise ImportError(
-                "`report_to=swanlab` requires the `swanlab` package to be installed."
-            ) from exc
-
-        logger.info(
-            "Using SwanLab through its wandb compatibility bridge because transformers==4.48.3 does not provide "
-            "the native SwanLab integration."
-        )
-        report_to = [target for target in report_to if target != "swanlab"]
-
-        if "wandb" not in report_to:
-            report_to.append("wandb")
-
-        swanlab.sync_wandb(wandb_run=False)
-        logger.info("Enabled SwanLab wandb sync bridge.")
-
-    training_args.report_to = report_to
-
 
 def load_config(argv):
     pre_parser = argparse.ArgumentParser(add_help=False)
@@ -122,8 +46,7 @@ def load_config(argv):
 def main(script_args, training_args, model_args):
     set_seed(training_args.seed)
     logger_setup(script_args, training_args, model_args) 
-    configure_tracking_dirs()
-    configure_tracking(training_args)
+    configure_tracking(training_args, TRACKING_ROOT)
 
     last_checkpoint = None
     if os.path.isdir(training_args.output_dir):
@@ -197,6 +120,7 @@ def main(script_args, training_args, model_args):
         "tags": ["rl-verify"],
     }
     if trainer.accelerator.is_main_process:
+        append_train_summary_csv(trainer, script_args, training_args, model_args)
         trainer.create_model_card(**kwargs)
         # Restore k,v cache for fast inference
         trainer.model.config.use_cache = True
