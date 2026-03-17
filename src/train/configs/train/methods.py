@@ -3,23 +3,35 @@ from dataclasses import dataclass, field
 
 @dataclass
 class RLVR:
+    trainer_name: str = "rlvr"
     format_pattern: str = "ta"
     sys_prompt_name: str = "gen"
-    reward_weights: list[float] = field(default_factory=lambda: [0.5, 0.5, 0.000001, 0.000001, 0.000001])
+    optimization_rewards: dict[str, float] = field(default_factory=lambda: {"format": 0.5, "accuracy": 0.5})
+    monitoring_rewards: list[str] = field(
+        default_factory=lambda: ["brier", "mean_confidence", "confidence_one_or_zero"]
+    )
 
 
 @dataclass
 class RLCR:
+    trainer_name: str = "rlcr"
     format_pattern: str = "tabc"
     sys_prompt_name: str = "tabc_long"
-    reward_weights: list[float] = field(default_factory=lambda: [0.5, 0.5, 0.5, 0.000001, 0.000001])
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5}
+    )
+    monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
 
 
 @dataclass
 class MathRLCR:
+    trainer_name: str = "rlcr"
     format_pattern: str = "tabc"
     sys_prompt_name: str = "tabc"
-    reward_weights: list[float] = field(default_factory=lambda: [0.5, 0.5, 0.5, 0.00001, 0.00001])
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5}
+    )
+    monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
 
 
 @dataclass

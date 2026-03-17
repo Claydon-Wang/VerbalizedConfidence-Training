@@ -11,8 +11,6 @@ class GRPOScriptArguments(ScriptArguments):
     Script arguments for the GRPO training script.
 
     Args:
-        reward_funcs (`list[str]`):
-            List of reward functions. Possible values: 'accuracy', 'format', 'reasoning_steps', 'cosine', 'repetition_penalty'.
         cosine_min_value_wrong (`float`):
             Minimum reward for cosine scaling for wrong answers.
         cosine_max_value_wrong (`float`):
@@ -36,14 +34,8 @@ class GRPOScriptArguments(ScriptArguments):
     dataset_train_split: str = field(default="train", metadata={"help": "Dataset split to use for training."})
     dataset_test_split: str = field(default="test", metadata={"help": "Dataset split to use for evaluation."})
 
-    reward_funcs: list[str] = field(
-        default_factory=lambda: ["accuracy", "format"],
-        metadata={
-            "help": "List of reward functions. Possible values: 'accuracy', 'format', 'reasoning_steps', 'cosine', 'repetition_penalty'"
-        },
-    )
-
     sys_prompt_name: str = field(default="ver", metadata={"help": "System prompt name."})
+    trainer_name: str = field(default="rlvr", metadata={"help": "Trainer implementation name."})
     task_spec: str = field(default="gen", metadata={"help": "Task specification."})
     set_pad_token: Optional[int] = field(default=None, metadata={"help": "Set the pad token to this id"})
 
@@ -58,11 +50,6 @@ class GRPOScriptArguments(ScriptArguments):
     eval_subset_size : Optional[int] = field(
         default=None,
         metadata={"help": "Size of the evaluation subset."},
-    )
-
-    format_pattern: Optional[str] = field(
-        default="ta",
-        metadata={"help": "The format pattern to use for the reward function."},
     )
 
 
@@ -146,6 +133,14 @@ class GRPOConfig(trl.GRPOConfig):
     callbacks: list[str] = field(
         default_factory=lambda: [], metadata={"help": "The callbacks to run during training."}
     )
+    optimization_rewards: dict[str, float] = field(
+        default_factory=dict,
+        metadata={"help": "Reward name to weight mapping used to construct the optimization reward set."},
+    )
+    monitoring_rewards: list[str] = field(
+        default_factory=list,
+        metadata={"help": "Reward names to compute for monitoring only; these do not affect optimization."},
+    )
     system_prompt: Optional[str] = field(
         default=None, metadata={"help": "The optional system prompt to use for benchmarking."}
     )
@@ -158,6 +153,10 @@ class GRPOConfig(trl.GRPOConfig):
         metadata={
             "help": "Maximum length of the prompt. If the prompt is longer than this value, it will be truncated left."
         },
+    )
+    format_pattern: str = field(
+        default="ta",
+        metadata={"help": "The output format pattern used by reward functions."},
     )
     num_generations: Optional[int] = field(
         default=4,
@@ -469,6 +468,3 @@ class ModelConfig:
 
         if hasattr(self.lora_target_modules, "__len__") and len(self.lora_target_modules) == 1:
             self.lora_target_modules = self.lora_target_modules[0]
-
-
-

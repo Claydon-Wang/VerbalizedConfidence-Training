@@ -10,17 +10,9 @@ from datasets import load_dataset
 import sys
 import os
 from transformers.trainer_utils import get_last_checkpoint
-from src.train.rewards.reward_fns import (
-    accuracy_reward,
-    brier_reward,
-    confidence_one_or_zero,
-    format_reward,
-    mean_confidence_reward,
-)
 from src.common.dataset_processing import process_dataset
-from src.train.trainers.grpo_trainer import CustomTrainer
+from src.train.trainers.trainer_registry import build_trainer
 import torch
-from functools import partial
 
 
 logger = logging.getLogger(__name__)
@@ -141,16 +133,6 @@ def main(script_args, training_args, model_args):
 
     dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config)
 
-     # Get reward functions
-    REWARD_FUNCS_REGISTRY = {
-        "format": partial(format_reward, format_pattern=script_args.format_pattern),
-        "accuracy": partial(accuracy_reward, format_pattern=script_args.format_pattern),
-        "brier": partial(brier_reward, format_pattern=script_args.format_pattern),
-        "mean_confidence": mean_confidence_reward,
-        "confidence_one_or_zero": confidence_one_or_zero
-    }
-    reward_funcs = [REWARD_FUNCS_REGISTRY[func] for func in script_args.reward_funcs]
-
     dataset = process_dataset(dataset, script_args)  
 
     for split in dataset:
@@ -173,12 +155,13 @@ def main(script_args, training_args, model_args):
     #############################
     # Initialize the GRPO trainer
     #############################
-    trainer = CustomTrainer(
+    trainer = build_trainer(
+        script_args.trainer_name,
         model=model_args.model_name_or_path,
-        reward_funcs=reward_funcs,
         args=training_args,
         train_dataset=train_dataset,
-        eval_dataset=eval_dataset if training_args.eval_strategy != "no" else None)
+        eval_dataset=eval_dataset if training_args.eval_strategy != "no" else None,
+    )
 
      ###############
     # Training loop

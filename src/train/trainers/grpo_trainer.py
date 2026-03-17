@@ -18,6 +18,7 @@ import warnings
 from collections import defaultdict, deque
 from collections.abc import Sized
 from contextlib import nullcontext
+from functools import partial
 from typing import Any, Callable, Optional, Union
 
 import datasets
@@ -70,6 +71,14 @@ from src.train.trainers.trainer_utils import (
     shuffle_tensor_dict,
     split_tensor_dict,
 )
+from src.train.trainers.base_trainer import BaseTrainer
+from src.train.rewards.reward_fns import (
+    accuracy_reward,
+    brier_reward,
+    confidence_one_or_zero,
+    format_reward,
+    mean_confidence_reward,
+)
 import gc
 
 if is_peft_available():
@@ -83,9 +92,7 @@ if is_wandb_available():
     import wandb
 
 RewardFunc = Union[str, PreTrainedModel, Callable[[list, list], list[float]]]
-
-
-class CustomTrainer(Trainer):
+class BaseGRPOTrainer(Trainer, BaseTrainer):
     """
     Trainer for the Group Relative Policy Optimization (GRPO) method. This algorithm was initially proposed in the
     paper [DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models](https://huggingface.co/papers/2402.03300).
@@ -175,10 +182,16 @@ class CustomTrainer(Trainer):
 
     _tag_names = ["trl", "grpo"]
 
+    def validate_reward_specs(self, optimization_rewards, monitoring_rewards):
+        if not optimization_rewards:
+            raise ValueError("optimization_rewards must be non-empty.")
+        overlap = set(optimization_rewards) & set(monitoring_rewards)
+        if overlap:
+            raise ValueError(f"Rewards cannot be both optimization and monitoring rewards: {sorted(overlap)}")
+
     def __init__(
         self,
         model: Union[str, PreTrainedModel],
-        reward_funcs: Union[RewardFunc, list[RewardFunc]],
         args: GRPOConfig = None,
         train_dataset: Optional[Union[Dataset, IterableDataset]] = None,
         eval_dataset: Optional[Union[Dataset, IterableDataset, dict[str, Union[Dataset, IterableDataset]]]] = None,
@@ -234,31 +247,25 @@ class CustomTrainer(Trainer):
             processing_class.pad_token = processing_class.eos_token
 
 
-        self.reward_func_names = [] 
+        optimization_rewards = args.optimization_rewards or {}
+        monitoring_rewards = args.monitoring_rewards or []
+        if not optimization_rewards:
+            raise ValueError("GRPO training requires a non-empty optimization_rewards mapping.")
+
+        self.validate_reward_specs(optimization_rewards, monitoring_rewards)
+        self.optimization_rewards = {name: float(weight) for name, weight in optimization_rewards.items()}
+        self.monitoring_rewards = list(monitoring_rewards)
+        self.optimization_reward_names, self.monitoring_reward_names = self.get_reward_names(
+            self.optimization_rewards, self.monitoring_rewards
+        )
+        self.reward_func_names = self.optimization_reward_names + self.monitoring_reward_names
+        reward_funcs = self.build_reward_functions(args, self.reward_func_names)
         for i, reward_func in enumerate(reward_funcs):
             if isinstance(reward_func, str):
                 reward_funcs[i] = AutoModelForSequenceClassification.from_pretrained(
                     reward_func, num_labels=1, **model_init_kwargs
                 )
-            if isinstance(reward_funcs[i], nn.Module):  # Use Module over PretrainedModel for compat w/ compiled models
-                self.reward_func_names.append(reward_funcs[i].config._name_or_path.split("/")[-1])
-            else:
-                try:
-                    self.reward_func_names.append(reward_funcs[i].__name__)
-                except:
-                    self.reward_func_names.append(reward_funcs[i].func.__name__)
-        self.reward_funcs = reward_funcs
-
-        # Reward weights
-        if args.reward_weights is not None:
-            if len(args.reward_weights) != len(reward_funcs):
-                raise ValueError(
-                    f"Number of reward weights ({len(len(args.reward_weights))}) must match number of reward "
-                    f"functions ({len(reward_funcs)})"
-                )
-            self.reward_weights = torch.tensor(args.reward_weights, dtype=torch.float32)
-        else:
-            self.reward_weights = torch.ones(len(reward_funcs), dtype=torch.float32) / len(reward_funcs)
+        self.reward_functions = dict(zip(self.reward_func_names, reward_funcs))
 
         # Reward processing class
         if reward_processing_classes is None:
@@ -279,7 +286,7 @@ class CustomTrainer(Trainer):
                 # So it's important to set the pad token ID to the padding token ID of the processing class.
                 reward_func.config.pad_token_id = reward_processing_class.pad_token_id
                 reward_processing_classes[i] = reward_processing_class
-        self.reward_processing_classes = reward_processing_classes
+        self.reward_processing_classes = dict(zip(self.reward_func_names, reward_processing_classes))
 
         # Data collator
         def data_collator(features):  # No data collation is needed in GRPO
@@ -393,15 +400,68 @@ class CustomTrainer(Trainer):
         if args.sync_ref_model:
             self.add_callback(SyncRefModelCallback(ref_model=self.ref_model, accelerator=self.accelerator))
 
-        for i, reward_func in enumerate(self.reward_funcs):
+        for reward_name, reward_func in self.reward_functions.items():
             if isinstance(reward_func, PreTrainedModel):
                 if self.is_deepspeed_enabled:
-                    self.reward_funcs[i] = prepare_deepspeed(reward_func, self.accelerator)
+                    self.reward_functions[reward_name] = prepare_deepspeed(reward_func, self.accelerator)
                 else:
                     # set device placement to True to make `prepare_model` move `reward_func` to device when using fsdp
-                    self.reward_funcs[i] = self.accelerator.prepare_model(
+                    self.reward_functions[reward_name] = self.accelerator.prepare_model(
                         reward_func, evaluation_mode=True, device_placement=True
                     )
+
+    def build_reward_function(self, args, reward_name: str):
+        if reward_name == "format":
+            return partial(format_reward, format_pattern=args.format_pattern)
+        if reward_name == "accuracy":
+            return partial(accuracy_reward, format_pattern=args.format_pattern)
+        if reward_name == "brier":
+            return partial(brier_reward, format_pattern=args.format_pattern)
+        if reward_name == "mean_confidence":
+            return mean_confidence_reward
+        if reward_name == "confidence_one_or_zero":
+            return confidence_one_or_zero
+        raise ValueError(f"Unknown reward name: {reward_name}")
+
+    def build_reward_functions(self, args, reward_names: list[str]):
+        return [self.build_reward_function(args, reward_name) for reward_name in reward_names]
+
+    def run_reward_function(
+        self,
+        reward_name: str,
+        prompts: list[Any],
+        completions: list[Any],
+        completion_ids_list: list[list[int]],
+        inputs: dict[str, Union[torch.Tensor, Any]],
+    ) -> torch.Tensor:
+        reward_func = self.reward_functions[reward_name]
+        reward_processing_class = self.reward_processing_classes[reward_name]
+        device = self.accelerator.device
+
+        with profiling_context(self, reward_name):
+            if isinstance(reward_func, nn.Module):
+                if is_conversational(inputs[0]):
+                    messages = [{"messages": p + c} for p, c in zip(prompts, completions)]
+                    texts = [apply_chat_template(x, reward_processing_class)["text"] for x in messages]
+                else:
+                    texts = [p + c for p, c in zip(prompts, completions)]
+                reward_inputs = reward_processing_class(
+                    text=texts, return_tensors="pt", padding=True, padding_side="right", add_special_tokens=False
+                )
+                reward_inputs = super()._prepare_inputs(reward_inputs)
+                with torch.inference_mode():
+                    return reward_func(**reward_inputs).logits[:, 0]
+
+            keys = [key for key in inputs[0] if key not in ["prompt", "completion", "completion_ids"]]
+            reward_kwargs = {key: [example[key] for example in inputs] for key in keys}
+            output_reward_func = reward_func(
+                prompts=prompts,
+                completions=completions,
+                completion_ids=completion_ids_list,
+                **reward_kwargs,
+            )
+            output_reward_func = [reward if reward is not None else torch.nan for reward in output_reward_func]
+            return torch.tensor(output_reward_func, dtype=torch.float32, device=device)
 
      
     def _set_signature_columns_if_needed(self):
@@ -555,12 +615,7 @@ class CustomTrainer(Trainer):
             inputs = self._generate_and_score_completions(generation_batch)
         return inputs
 
-    def _generate_and_score_completions(
-        self, inputs: dict[str, Union[torch.Tensor, Any]], eval = False
-    ) -> dict[str, Union[torch.Tensor, Any]]:
-        device = self.accelerator.device
-        mode = "train" if self.model.training else "eval"
-
+    def prepare_prompts(self, inputs: dict[str, Union[torch.Tensor, Any]]) -> dict[str, Any]:
         prompts = [x["prompt"] for x in inputs]
         prompts_text = [maybe_apply_chat_template(example, self.processing_class)["prompt"] for example in inputs]
         prompt_inputs = self.processing_class(
@@ -573,44 +628,53 @@ class CustomTrainer(Trainer):
             prompt_ids = prompt_ids[:, -self.max_prompt_length :]
             prompt_mask = prompt_mask[:, -self.max_prompt_length :]
 
+        return {
+            "prompts": prompts,
+            "prompts_text": prompts_text,
+            "prompt_ids": prompt_ids,
+            "prompt_mask": prompt_mask,
+        }
+
+    def generate_completions(self, prompt_bundle: dict[str, Any]) -> dict[str, Any]:
+        device = self.accelerator.device
+        mode = "train" if self.model.training else "eval"
+        prompt_ids = prompt_bundle["prompt_ids"]
+        prompt_mask = prompt_bundle["prompt_mask"]
+        prompts_text = prompt_bundle["prompts_text"]
+
         torch.cuda.empty_cache()
 
-        # First, have main process load weights if needed
         if self.state.global_step != self._last_loaded_step:
-            if self.state.global_step>=-1:
+            if self.state.global_step >= -1:
                 self.llm.wake_up()
-                self.vllm_sleeping = False 
+                self.vllm_sleeping = False
             self._move_model_to_vllm()
             self._last_loaded_step = self.state.global_step
 
         sampling_params = SamplingParams(
-                    n=1,  # vLLM on each GPU generates only 1 in colocate mode
-                    temperature=self.temperature,
-                    max_tokens=self.max_completion_length)
-        
+            n=1,
+            temperature=self.temperature,
+            max_tokens=self.max_completion_length,
+        )
+
         with profiling_context(self, "vLLM.generate"):
             all_outputs = self.llm.generate(prompts_text, sampling_params=sampling_params, use_tqdm=False)
-           # put to sleep
             if mode == "train":
                 self.llm.sleep(level=1)
-                self.vllm_sleeping = True 
+                self.vllm_sleeping = True
                 self.accelerator.wait_for_everyone()
 
         completion_ids = [output.token_ids for outputs in all_outputs for output in outputs.outputs]
-        # Pad the completions, and concatenate them with the prompts
         completion_ids = [torch.tensor(ids, device=device) for ids in completion_ids]
         completion_ids = pad(completion_ids, padding_value=self.processing_class.pad_token_id)
         prompt_completion_ids = torch.cat([prompt_ids, completion_ids], dim=1)
-       
-        # Mask everything after the first EOS token
+
         is_eos = completion_ids == self.processing_class.eos_token_id
         eos_idx = torch.full((is_eos.size(0),), is_eos.size(1), dtype=torch.long, device=device)
         eos_idx[is_eos.any(dim=1)] = is_eos.int().argmax(dim=1)[is_eos.any(dim=1)]
         sequence_indices = torch.arange(is_eos.size(1), device=device).expand(is_eos.size(0), -1)
         completion_mask = (sequence_indices <= eos_idx.unsqueeze(1)).int()
 
-         # Convert tensor to a list of lists of token IDs. This will be passed to the reward function, avoiding the need
-        # to re-tokenize completions if the reward is computed from tokens.
         completion_ids_list = [
             [id.item() for id, m in zip(row, mask_row) if m] for row, mask_row in zip(completion_ids, completion_mask)
         ]
@@ -619,77 +683,53 @@ class CustomTrainer(Trainer):
             truncated_completions = ~is_eos.any(dim=1)
             completion_mask = completion_mask * (~truncated_completions).unsqueeze(1).int()
 
-         # Concatenate prompt_mask with completion_mask for logit computation
-        attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)  # (B, P+C)
-
-        logits_to_keep = completion_ids.size(1)  # we only need to compute the logits for the completion tokens
-        batch_size = self.args.per_device_train_batch_size if mode == "train" else self.args.per_device_eval_batch_size
+        attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)
+        logits_to_keep = completion_ids.size(1)
+        mode_batch_size = self.args.per_device_train_batch_size if mode == "train" else self.args.per_device_eval_batch_size
 
         with torch.no_grad():
-            # When using num_iterations == 1 and steps_per_generation <= gradient_accumulation_steps
-            # old_per_token_logps == per_token_logps, so we can skip it's computation here, and use
-            # per_token_logps.detach() instead.
             if self.num_iterations > 1 or self.args.steps_per_generation > self.args.gradient_accumulation_steps:
                 old_per_token_logps = self._get_per_token_logps(
-                    self.model, prompt_completion_ids, attention_mask, logits_to_keep, batch_size, mode = mode
+                    self.model, prompt_completion_ids, attention_mask, logits_to_keep, mode_batch_size, mode=mode
                 )
             else:
                 old_per_token_logps = None
 
-         # Decode the generated completions
         completions_text = self.processing_class.batch_decode(completion_ids, skip_special_tokens=True)
-        if is_conversational(inputs[0]):
+        first_prompt = prompt_bundle["prompts"][0]
+        is_prompt_conversational = (
+            isinstance(first_prompt, list)
+            and len(first_prompt) > 0
+            and isinstance(first_prompt[0], dict)
+            and {"role", "content"}.issubset(first_prompt[0].keys())
+        )
+        if is_prompt_conversational:
             completions = []
-            for prompt, completion in zip(prompts, completions_text):
-                bootstrap = prompt.pop()["content"] if prompt[-1]["role"] == "assistant" else ""
+            for prompt, completion in zip(prompt_bundle["prompts"], completions_text):
+                bootstrap = prompt[-1]["content"] if prompt and prompt[-1]["role"] == "assistant" else ""
                 completions.append([{"role": "assistant", "content": bootstrap + completion}])
         else:
             completions = completions_text
 
-        rewards_per_func = torch.zeros(len(prompts), len(self.reward_funcs), device=device)
-        for i, (reward_func, reward_processing_class, reward_func_name) in enumerate(
-            zip(self.reward_funcs, self.reward_processing_classes, self.reward_func_names)
-        ):
-            with profiling_context(self, reward_func_name):
-                if isinstance(
-                    reward_func, nn.Module
-                ):  # Module instead of PretrainedModel for compat with compiled models
-                    if is_conversational(inputs[0]):
-                        messages = [{"messages": p + c} for p, c in zip(prompts, completions)]
-                        texts = [apply_chat_template(x, reward_processing_class)["text"] for x in messages]
-                    else:
-                        texts = [p + c for p, c in zip(prompts, completions)]
-                    reward_inputs = reward_processing_class(
-                        text=texts, return_tensors="pt", padding=True, padding_side="right", add_special_tokens=False
-                    )
-                    reward_inputs = super()._prepare_inputs(reward_inputs)
-                    with torch.inference_mode():
-                        rewards_per_func[:, i] = reward_func(**reward_inputs).logits[:, 0]  # Shape (B*G,)
-                else:
-                    # Repeat all input columns (but "prompt", "completion", and "completion_ids") to match the number
-                    # of generations
-                    keys = [key for key in inputs[0] if key not in ["prompt", "completion", "completion_ids"]]
-                    reward_kwargs = {key: [example[key] for example in inputs] for key in keys}
-                    output_reward_func = reward_func(
-                        prompts=prompts, completions=completions, completion_ids=completion_ids_list, **reward_kwargs
-                    )
-                    # Convert None values to NaN
-                    output_reward_func = [reward if reward is not None else torch.nan for reward in output_reward_func]
+        return {
+            **prompt_bundle,
+            "completion_ids": completion_ids,
+            "completion_ids_list": completion_ids_list,
+            "completion_mask": completion_mask,
+            "attention_mask": attention_mask,
+            "old_per_token_logps": old_per_token_logps,
+            "completions": completions,
+            "completions_text": completions_text,
+            "is_eos": is_eos,
+        }
 
-                    rewards_per_func[:, i] = torch.tensor(output_reward_func, dtype=torch.float32, device=device)
+    def compute_rewards(self, generation_outputs: dict[str, Any], inputs: dict[str, Union[torch.Tensor, Any]]):
+        raise NotImplementedError
 
-        # Gather the reward per function: this part is crucial, because the rewards are normalized per group and the
-        # completions may be distributed across processes
-        rewards_per_func = gather(rewards_per_func)
-
-        # Apply weights to each reward function's output and sum
-        rewards = (rewards_per_func * self.reward_weights.to(device).unsqueeze(0)).sum(dim=1)
-
-        # Compute grouped-wise rewards
+    def compute_advantages(self, rewards: torch.Tensor):
         mean_grouped_rewards = rewards.view(-1, self.num_generations).mean(dim=1)
         std_grouped_rewards = rewards.view(-1, self.num_generations).std(dim=1)
 
-        # Normalize the rewards to compute the advantages
         mean_grouped_rewards = mean_grouped_rewards.repeat_interleave(self.num_generations, dim=0)
         std_grouped_rewards = std_grouped_rewards.repeat_interleave(self.num_generations, dim=0)
         advantages = rewards - mean_grouped_rewards
@@ -697,25 +737,40 @@ class CustomTrainer(Trainer):
         if self.scale_rewards:
             advantages = advantages / (std_grouped_rewards + 1e-4)
 
+        return advantages, mean_grouped_rewards, std_grouped_rewards
+
+    def _generate_and_score_completions(
+        self, inputs: dict[str, Union[torch.Tensor, Any]], eval = False
+    ) -> dict[str, Union[torch.Tensor, Any]]:
+        mode = "train" if self.model.training else "eval"
+        device = self.accelerator.device
+        prompt_bundle = self.prepare_prompts(inputs)
+        generation_outputs = self.generate_completions(prompt_bundle)
+        reward_outputs = self.compute_rewards(generation_outputs, inputs)
+        optimization_rewards_per_func = reward_outputs["optimization_rewards_per_func"]
+        monitoring_rewards_per_func = reward_outputs["monitoring_rewards_per_func"]
+        rewards = reward_outputs["rewards"]
+        advantages, mean_grouped_rewards, std_grouped_rewards = self.compute_advantages(rewards)
+
         # Slice to keep only the local part of the data
         process_slice = slice(
-            self.accelerator.process_index * len(prompts),
-            (self.accelerator.process_index + 1) * len(prompts),
+            self.accelerator.process_index * len(prompt_bundle["prompts"]),
+            (self.accelerator.process_index + 1) * len(prompt_bundle["prompts"]),
         )
         advantages = advantages[process_slice]
 
         # Log the metrics
         if mode == "train":
-            self.state.num_input_tokens_seen += self.accelerator.gather_for_metrics(attention_mask.sum()).sum().item()
+            self.state.num_input_tokens_seen += self.accelerator.gather_for_metrics(generation_outputs["attention_mask"].sum()).sum().item()
         self._metrics[mode]["num_tokens"] = [self.state.num_input_tokens_seen]
 
         # log completion lengths, mean, min, max
-        agg_completion_mask = self.accelerator.gather_for_metrics(completion_mask.sum(1))
+        agg_completion_mask = self.accelerator.gather_for_metrics(generation_outputs["completion_mask"].sum(1))
         self._metrics[mode]["completions/mean_length"].append(agg_completion_mask.float().mean().item())
         self._metrics[mode]["completions/min_length"].append(agg_completion_mask.float().min().item())
         self._metrics[mode]["completions/max_length"].append(agg_completion_mask.float().max().item())
 
-        agg_terminated_with_eos = self.accelerator.gather_for_metrics(is_eos.any(dim=1))
+        agg_terminated_with_eos = self.accelerator.gather_for_metrics(generation_outputs["is_eos"].any(dim=1))
         term_completion_mask = agg_completion_mask[agg_terminated_with_eos]
         clipped_completions_ratio = 1 - len(term_completion_mask) / len(agg_completion_mask)
         self._metrics[mode]["completions/clipped_ratio"].append(clipped_completions_ratio)
@@ -727,36 +782,53 @@ class CustomTrainer(Trainer):
         self._metrics[mode]["completions/max_terminated_length"].append(term_completion_mask.float().max().item())
 
         # Calculate mean reward per function, but only for samples where the function was applied (non-NaN values)
-        for i, reward_func_name in enumerate(self.reward_func_names):
-            mean_rewards = torch.nanmean(rewards_per_func[:, i]).item()
-            self._metrics[mode][f"rewards/{reward_func_name}"].append(mean_rewards)
-        self._metrics[mode]["reward"].append(mean_grouped_rewards.mean().item())
+        reward_metric_names = self.optimization_reward_names + self.monitoring_reward_names
+        reward_metric_values = torch.cat([optimization_rewards_per_func, monitoring_rewards_per_func], dim=1)
+        for i, reward_func_name in enumerate(reward_metric_names):
+            mean_rewards = torch.nanmean(reward_metric_values[:, i]).item()
+            self._metrics[mode][f"reward_values/{reward_func_name}"].append(mean_rewards)
+        self._metrics[mode]["reward_total"].append(mean_grouped_rewards.mean().item())
         self._metrics[mode]["reward_std"].append(std_grouped_rewards.mean().item())
 
         # Log prompt and completion texts
         num_completions_to_log = self.args.num_completions_to_log 
         self._textual_logs["step"].extend([str(self.state.global_step)] * num_completions_to_log)
-        self._textual_logs["prompt"].extend(gather_object(prompts_text)[0:num_completions_to_log])
-        self._textual_logs["completion"].extend(gather_object(completions_text)[0:num_completions_to_log])
-        for i, name in enumerate(self.reward_func_names):
-            self._textual_logs["rewards"][name].extend(rewards_per_func[:, i].tolist()[0:num_completions_to_log])
+        self._textual_logs["prompt"].extend(gather_object(prompt_bundle["prompts_text"])[0:num_completions_to_log])
+        self._textual_logs["completion"].extend(gather_object(generation_outputs["completions_text"])[0:num_completions_to_log])
+        for i, name in enumerate(reward_metric_names):
+            self._textual_logs["rewards"][name].extend(
+                reward_metric_values[:, i].tolist()[0:num_completions_to_log]
+            )
 
         return {
-            "prompt_ids": prompt_ids,
-            "prompt_mask": prompt_mask,
-            "completion_ids": completion_ids,
-            "completion_mask": completion_mask,
+            "prompt_ids": generation_outputs["prompt_ids"],
+            "prompt_mask": generation_outputs["prompt_mask"],
+            "completion_ids": generation_outputs["completion_ids"],
+            "completion_mask": generation_outputs["completion_mask"],
             "advantages": advantages,
-            "old_per_token_logps": old_per_token_logps,
+            "old_per_token_logps": generation_outputs["old_per_token_logps"],
         }
 
     @profiling_decorator
     def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
         if return_outputs:
             raise ValueError("The GRPOTrainer does not support returning outputs")
-        return self._compute_loss(model, inputs)
-    
-    def _compute_loss(self, model, inputs):
+        return self.update_policy(model, inputs)
+
+    def compute_policy_loss(self, per_token_logps, old_per_token_logps, advantages, completion_mask):
+        coef_1 = torch.exp(per_token_logps - old_per_token_logps)
+        coef_2 = torch.clamp(coef_1, 1 - self.epsilon_low, 1 + self.epsilon_high)
+
+        if self.args.delta is not None:
+            per_token_loss1 = torch.clamp(coef_1, max=self.args.delta) * advantages.unsqueeze(1)
+        else:
+            per_token_loss1 = coef_1 * advantages.unsqueeze(1)
+
+        per_token_loss2 = coef_2 * advantages.unsqueeze(1)
+        per_token_loss = -torch.min(per_token_loss1, per_token_loss2)
+        return per_token_loss, coef_1
+
+    def update_policy(self, model, inputs):
         # Log the metrics
         mode = "train" if self.model.training else "eval"
         if mode == "train":
@@ -793,19 +865,10 @@ class CustomTrainer(Trainer):
         old_per_token_logps = (
             per_token_logps.detach() if inputs["old_per_token_logps"] is None else inputs["old_per_token_logps"]
         )
-        coef_1 = torch.exp(per_token_logps - old_per_token_logps)
+        per_token_loss, coef_1 = self.compute_policy_loss(
+            per_token_logps, old_per_token_logps, advantages, completion_mask
+        )
         coef_2 = torch.clamp(coef_1, 1 - self.epsilon_low, 1 + self.epsilon_high)
-
-        if self.args.delta is not None:
-            # Use clamp instead of min to handle tensor-float comparison
-            per_token_loss1 = torch.clamp(coef_1, max=self.args.delta) * advantages.unsqueeze(1)
-        else:
-            # Original GRPO clipping (only lower bound implicitly applied by the final min)
-            per_token_loss1 = coef_1 * advantages.unsqueeze(1)
-
-        
-        per_token_loss2 = coef_2 * advantages.unsqueeze(1)
-        per_token_loss = -torch.min(per_token_loss1, per_token_loss2)
 
         if self.beta != 0.0:
             per_token_loss = per_token_loss + self.beta * per_token_kl
@@ -852,12 +915,7 @@ class CustomTrainer(Trainer):
 
     def log(self, logs: dict[str, float], start_time: Optional[float] = None) -> None:
         mode = "train" if self.model.training else "eval"
-        metrics = {key: sum(val) / len(val) for key, val in self._metrics[mode].items()}  # average the metrics
-
-        # This method can be called both in training and evaluation. When called in evaluation, the keys in `logs`
-        # start with "eval_". We need to add the prefix "eval_" to the keys in `metrics` to match the format.
-        if mode == "eval":
-            metrics = {f"eval_{key}": val for key, val in metrics.items()}
+        metrics = {f"{mode}/{key}": sum(val) / len(val) for key, val in self._metrics[mode].items()}
 
         logs = {**logs, **metrics}
         if version.parse(transformers.__version__) >= version.parse("4.47.0.dev0"):

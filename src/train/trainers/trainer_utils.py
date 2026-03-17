@@ -162,7 +162,8 @@ def profiling_context(trainer: Trainer, name: str) -> Generator[None, None, None
     end_time = time.perf_counter()
     duration = end_time - start_time
 
-    profiling_metrics = {f"profiling/Time taken: {trainer.__class__.__name__}.{name}": duration}
+    normalized_name = name.lstrip("_").replace(".", "_").lower()
+    profiling_metrics = {f"profiling/{normalized_name}_time": duration}
     if "wandb" in trainer.args.report_to and wandb.run is not None and trainer.accelerator.is_main_process:
         wandb.log(profiling_metrics)
 

@@ -50,10 +50,8 @@ class TrainConfig:
     per_device_train_batch_size: int = 8
     push_to_hub: bool = False
     report_to: list[str] = field(default_factory=lambda: ["swanlab"])
-    reward_funcs: list[str] = field(
-        default_factory=lambda: ["format", "accuracy", "brier", "mean_confidence", "confidence_one_or_zero"]
-    )
-    reward_weights: list[float] = field(default_factory=lambda: [0.5, 0.5, 0.5, 0.000001, 0.000001])
+    optimization_rewards: dict[str, float] = field(default_factory=dict)
+    monitoring_rewards: list[str] = field(default_factory=list)
     save_strategy: str = "steps"
     save_steps: int = 60
     save_total_limit: int = 1
@@ -116,8 +114,8 @@ class TrainConfig:
             "per_device_train_batch_size": self.per_device_train_batch_size,
             "push_to_hub": self.push_to_hub,
             "report_to": self.report_to,
-            "reward_funcs": self.reward_funcs,
-            "reward_weights": self.reward_weights,
+            "optimization_rewards": self.optimization_rewards,
+            "monitoring_rewards": self.monitoring_rewards,
             "save_strategy": self.save_strategy,
             "save_steps": self.save_steps,
             "save_total_limit": self.save_total_limit,
