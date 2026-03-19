@@ -24,6 +24,7 @@ class EvalBaseConfig:
 
     # model
     gpu_memory_utilization: float = 0.9
+    tensor_parallel_size: int | None = None
     model_name_or_path: str | None = None
     num_generations: int = 1
     temperature: float = 0

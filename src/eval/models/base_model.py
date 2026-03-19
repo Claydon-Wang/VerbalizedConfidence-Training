@@ -10,7 +10,11 @@ class BaseModel:
     def __init__(self, config):
         self.config = config
         self.tokenizer = AutoTokenizer.from_pretrained(config.model_name_or_path, trust_remote_code=True)
-        self.llm = LLM(model=config.model_name_or_path, gpu_memory_utilization=config.gpu_memory_utilization)
+        self.llm = LLM(
+            model=config.model_name_or_path,
+            gpu_memory_utilization=config.gpu_memory_utilization,
+            tensor_parallel_size=config.tensor_parallel_size,
+        )
 
     def build_generation_inputs(self, prompts):
         prompt_ids = self.tokenizer.apply_chat_template(prompts, add_generation_prompt=True)

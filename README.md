@@ -99,12 +99,6 @@ We welcome suggestions and contributions!
 
 ## 📊 Evaluation
 
-To run inference with our trained RLCR model on a single GPU:
-
-```bash
-CUDA_VISIBLE_DEVICES=0 python -m src.eval.inference_example
-```
-
 ### 📚 Available Models
 
 | Name              | Training Dataset                                         | Model Path                                             | System Prompt   |

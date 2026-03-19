@@ -50,6 +50,7 @@ def llm_confidence_verifier(
     llm = LLM(
         model=config.judge_model_name_or_path,
         gpu_memory_utilization=config.judge_gpu_memory_utilization,
+        tensor_parallel_size=config.tensor_parallel_size,
     )
     outputs = llm.generate(prompts, sampling_params=sampling_params)
 

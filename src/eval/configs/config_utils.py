@@ -7,6 +7,25 @@ from src.eval.configs.base import EvalBaseConfig
 from transformers import AutoConfig
 
 
+def detect_tensor_parallel_size() -> int:
+    cuda_visible_devices = os.environ.get("CUDA_VISIBLE_DEVICES")
+    if cuda_visible_devices is not None:
+        visible = [device.strip() for device in cuda_visible_devices.split(",") if device.strip()]
+        if visible:
+            return len(visible)
+
+    try:
+        import torch
+
+        count = torch.cuda.device_count()
+        if count > 0:
+            return count
+    except Exception:
+        pass
+
+    return 1
+
+
 def load_config_class(module_suffix: str, class_name: str):
     module_name = module_suffix if module_suffix.startswith("src.") else f"src.eval.configs.{module_suffix}"
     module = importlib.import_module(module_name)
@@ -77,6 +96,7 @@ def update_config(
     model_name: str,
     policy_name: str,
     checkpoint_name: str | None = None,
+    tensor_parallel_size: int | None = None,
 ):
     run_name = policy_name
     output_path = os.path.join(model_name, policy_name)
@@ -104,6 +124,7 @@ def update_config(
     )
     if checkpoint_name is not None:
         config.model_name_or_path = checkpoint_name
+    config.tensor_parallel_size = tensor_parallel_size if tensor_parallel_size is not None else detect_tensor_parallel_size()
     return config
 
 
@@ -112,6 +133,7 @@ def build_eval_config(
     model_name: str,
     policy_name: str | None = None,
     checkpoint_name: str | None = None,
+    tensor_parallel_size: int | None = None,
 ):
     if not model_name:
         raise ValueError("Evaluation requires --model <Class>.")
@@ -119,6 +141,8 @@ def build_eval_config(
         policy_name = "Baseline"
     if policy_name != "Baseline" and checkpoint_name is None:
         raise ValueError("Non-baseline evaluation requires --checkpoint <path>.")
+    if tensor_parallel_size is not None and tensor_parallel_size < 1:
+        raise ValueError("--tensor_parallel_size must be >= 1.")
 
     base_config, dataset_config, model_config, policy_config = load_config(
         dataset_name, model_name, policy_name
@@ -133,4 +157,5 @@ def build_eval_config(
         model_name=model_name,
         policy_name=policy_name,
         checkpoint_name=checkpoint_name,
+        tensor_parallel_size=tensor_parallel_size,
     )
