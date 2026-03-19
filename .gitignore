@@ -176,3 +176,4 @@ results/
 # Python build and cache outputs
 *.pyo
 *.pyd
+data

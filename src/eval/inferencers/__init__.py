@@ -1,0 +1,13 @@
+from src.eval.inferencers.base_inferencer import BaseInferencer
+from src.eval.inferencers.answer_prob_inferencer import AnswerProbInferencer
+from src.eval.inferencers.verbalized_confidence_inferencer import VerbalizedConfidenceInferencer
+
+
+def build_inferencer(config, model):
+    if config.inferencer_name == "verbalized_confidence":
+        return VerbalizedConfidenceInferencer(config, model)
+    if config.inferencer_name == "answer_prob":
+        return AnswerProbInferencer(config, model)
+    if config.inferencer_name == "base":
+        return BaseInferencer(config, model)
+    raise ValueError(f"Unknown inferencer_name: {config.inferencer_name}")

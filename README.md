@@ -119,10 +119,16 @@ CUDA_VISIBLE_DEVICES=0 python -m src.eval.inference_example
 
 ### 🧪 Sample Evaluation Run
 
-Run evaluation on a dataset using a config:
+Run a baseline evaluation with a dataset config and a base model config:
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python -m src.eval.evaluation --config src/eval/configs/Hotpot-models/trivia.json
+CUDA_VISIBLE_DEVICES=0 python -m src.eval.eval_main --dataset Trivia --model Qwen25_1_5B
+```
+
+Run evaluation for a trained policy with an explicit checkpoint:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python -m src.eval.eval_main --dataset Hotpot --model Qwen25_7B --policy HotpotRLCR --checkpoint mehuldamani/hotpot-v2-brier-7b-no-split
 ```
 
 For a full eval suite on a single GPU (We already provide the outputs/results from this):
@@ -136,7 +142,7 @@ bash scripts/eval.sh
 - Evaluation outputs and metrics are both stored under `logs/eval/`.
 - Training checkpoints and trainer logs are stored under `logs/train/`.
 - Local experiment tracking files for `wandb` and `swanlab` are stored under `temp/exp_tracking/`.
-- To evaluate on new datasets/models, add them to config files inside `src/eval/configs/`.
+- To evaluate on new datasets, base models, or policies, add them to the config modules inside `src/eval/configs/`.
 - To add or update training runs, edit Python config classes inside `src/train/configs/train/`.
 - Default evaluation uses `temperature = 0` and `max_tokens = 4096`.
 - Currently supported evaluation functions:
