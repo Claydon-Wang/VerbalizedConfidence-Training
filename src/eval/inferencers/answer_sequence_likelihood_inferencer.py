@@ -5,7 +5,7 @@ import numpy as np
 from src.eval.inferencers.base_inferencer import BaseInferencer
 
 
-class AnswerProbInferencer(BaseInferencer):
+class AnswerSequenceLikelihoodInferencer(BaseInferencer):
     def generate_outputs(self, texts):
         return self.model.generate(texts, logprobs=1)
 
@@ -29,9 +29,23 @@ class AnswerProbInferencer(BaseInferencer):
                     output.outputs[i].text = output.outputs[i].text + "<confidence> 0.5 </confidence>"
                     invalid_count += 1
                 else:
+                    # selected_probs = probs[start_index:end_index]
+                    # avg_prob = sum(selected_probs) / len(selected_probs)
+                    # output.outputs[i].text = output.outputs[i].text + f"<confidence> {avg_prob} </confidence>"
                     selected_probs = probs[start_index:end_index]
-                    avg_prob = sum(selected_probs) / len(selected_probs)
-                    output.outputs[i].text = output.outputs[i].text + f"<confidence> {avg_prob} </confidence>"
+
+                    # 防止 log(0)
+                    eps = 1e-6
+                    selected_probs = [min(max(p, eps), 1.0) for p in selected_probs]
+
+                    log_probs = [max(np.log(p), -20) for p in selected_probs]
+                    avg_log_prob = sum(log_probs) / len(log_probs)
+
+                    geom_mean = np.exp(avg_log_prob)   # 这就是 TPU 的 confidence
+
+                    output.outputs[i].text = (
+                        output.outputs[i].text + f"<confidence> {geom_mean} </confidence>"
+                    )
 
         total_outputs = self.config.num_generations * len(outputs)
         logging.info(

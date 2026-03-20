@@ -36,11 +36,12 @@ def cli_main():
     parser.add_argument("--model", type=str, help="Base model config class name")
     parser.add_argument("--policy", type=str, default=None, help="Optional policy config class name")
     parser.add_argument("--checkpoint", type=str, default=None, help="Optional checkpoint path or HF repo id")
+    parser.add_argument("--inferencer", type=str, default=None, help="Eval inferencer name")
     args = parser.parse_args()
 
     if not args.dataset or not args.model:
         raise ValueError("Evaluation requires --dataset <Class> --model <Class> [--policy <Class>] [--checkpoint <path>]")
-    config = build_eval_config(args.dataset, args.model, args.policy, args.checkpoint)
+    config = build_eval_config(args.dataset, args.model, args.policy, args.checkpoint, args.inferencer)
     main(config)
 
 

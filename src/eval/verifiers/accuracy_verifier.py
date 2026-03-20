@@ -1,7 +1,27 @@
 from math_verify import parse, verify
 
-from src.eval.inferencers.base_inferencer import BaseInferencer
 from src.eval.verifiers.utils import exact_match_score
+
+
+def answers_equivalent(answer_a: str, answer_b: str) -> bool:
+    if not answer_a or not answer_b:
+        return False
+
+    try:
+        label = verify(answer_a, parse(answer_b))
+        if label == 1:
+            return True
+    except Exception:
+        pass
+
+    try:
+        label = verify(answer_b, parse(answer_a))
+        if label == 1:
+            return True
+    except Exception:
+        pass
+
+    return exact_match_score(answer_a, answer_b)
 
 
 def gen_correctness_reward(completions, answer, **kwargs):
@@ -16,7 +36,7 @@ def gen_correctness_reward(completions, answer, **kwargs):
     return matches
 
 
-def confidence_verifier(
+def rule_verifier(
     local_dataset,
     config,
     format_fn="confidence_format",
@@ -25,34 +45,19 @@ def confidence_verifier(
 ):
     label_dict = {"is_correct": []}
     is_correct = []
-    generation_len = []
-    confidence = []
-    is_conf_legal = []
     correctness_fn = gen_correctness_reward
 
     for i in range(len(local_dataset)):
-        correctness_list, generation_len_list, confidence_list, conf_legal_list = [], [], [], []
+        correctness_list = []
         answers = local_dataset[i]["answers"]
-        generations = local_dataset[i]["generations"]
-        confidences = local_dataset[i]["confidences"]
         gold_answer = local_dataset[i]["answer"]
 
-        for answer_text, generation_text, confidence_text in zip(answers, generations, confidences):
+        for answer_text in answers:
             args = {"completions": [[{"role": "assistant", "content": answer_text}]], "answer": [gold_answer]}
             actual_correctness = correctness_fn(**args)[0]
-            conf_format, conf_level = BaseInferencer.confidence_extractor(confidence_text)
-            conf_legal_list.append(conf_format)
-            generation_len_list.append(len(generation_text))
-            confidence_list.append(conf_level)
             correctness_list.append(1 if actual_correctness == 1 else 0)
 
         is_correct.append(correctness_list)
-        generation_len.append(generation_len_list)
-        confidence.append(confidence_list)
-        is_conf_legal.append(conf_legal_list)
 
     label_dict["is_correct"] = is_correct
-    label_dict["generation_len"] = generation_len
-    label_dict["confidence"] = confidence
-    label_dict["is_conf_legal"] = is_conf_legal
     return label_dict
