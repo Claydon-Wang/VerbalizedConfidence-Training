@@ -66,6 +66,12 @@ class Math500(EvalDatasetConfig):
 
 
 @dataclass
+class MMLUPro(EvalDatasetConfig):
+    dataset_name: str = "TIGER-Lab/MMLU-Pro"
+    answer_verifier_name: str = "rule_verifier"
+
+
+@dataclass
 class SimpleQA(EvalDatasetConfig):
     dataset_name: str = "basicv8vc/SimpleQA"
     answer_verifier_name: str = "llm_verifier"

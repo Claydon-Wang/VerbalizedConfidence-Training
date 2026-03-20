@@ -2,7 +2,7 @@ export HF_ENDPOINT=https://hf-mirror.com
 export HF_HOME=/mnt/sharedata/ssd_large/common/LLMs/
 export HF_DATASETS_CACHE=/mnt/sharedata/ssd_large/common/datasets/
 
-GPU=6
+GPU=7
 
 DATASETS=(
   # "CommonsenseQA"
@@ -11,13 +11,16 @@ DATASETS=(
   # "Hotpot"
   # "HotpotVanilla"
   # "Math500"
+  # "MMLUPro"
   # "SimpleQA"
-  "TriviaQA"
+  # "TriviaQA"
+  "MMLUPro"
 )
 
 for dataset in "${DATASETS[@]}"; do
-#   CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B --inferencer verbalized_confidence --policy HotpotRLVR --checkpoint /mnt/sharedata/ssd_large/users/wsy/project/rl/RLCR/temp/train/RLVR-hotpot
-  CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B --inferencer answer_sequence_likelihood --policy HotpotRLVR --checkpoint /mnt/sharedata/ssd_large/users/wsy/project/rl/RLCR/temp/train/RLVR-hotpot
+CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_7BInstruct --inferencer verbalized_confidence
+  # CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B --inferencer verbalized_confidence --policy HotpotRLVR --checkpoint /mnt/sharedata/ssd_large/users/wsy/project/rl/RLCR/temp/train/RLVR-hotpot
+  # CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B --inferencer answer_sequence_likelihood --policy HotpotRLVR --checkpoint /mnt/sharedata/ssd_large/users/wsy/project/rl/RLCR/temp/train/RLVR-hotpot
   # CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B --inferencer self_consistency --policy HotpotRLVR --checkpoint /mnt/sharedata/ssd_large/users/wsy/project/rl/RLCR/temp/train/RLVR-hotpot
   # CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B --inferencer p_true --policy HotpotRLVR --checkpoint /mnt/sharedata/ssd_large/users/wsy/project/rl/RLCR/temp/train/RLVR-hotpot
   # CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B --inferencer verbalized_confidence --policy HotpotRLVR --checkpoint /mnt/sharedata/ssd_large/users/wsy/project/rl/RLCR/temp/train/RLVR-hotpot
