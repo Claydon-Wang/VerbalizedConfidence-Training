@@ -159,7 +159,7 @@ class BaseInferencer:
 
         if inferencer_name == "verbalized_confidence":
             return "think_answer_confidence"
-        if inferencer_name in {"answer_prob", "p_true", "base"}:
+        if inferencer_name in {"answer_sequence_likelihood", "p_true", "base"}:
             return "think_answer"
 
         raise ValueError(

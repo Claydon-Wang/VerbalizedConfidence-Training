@@ -17,8 +17,9 @@ DATASETS=(
 
 for dataset in "${DATASETS[@]}"; do
 #   CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B --inferencer verbalized_confidence --policy HotpotRLVR --checkpoint /mnt/sharedata/ssd_large/users/wsy/project/rl/RLCR/temp/train/RLVR-hotpot
-#   CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B --inferencer answer_prob --policy HotpotRLVR --checkpoint /mnt/sharedata/ssd_large/users/wsy/project/rl/RLCR/temp/train/RLVR-hotpot
-  CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B --inferencer self_consistency --policy HotpotRLVR --checkpoint /mnt/sharedata/ssd_large/users/wsy/project/rl/RLCR/temp/train/RLVR-hotpot
+  CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B --inferencer answer_sequence_likelihood --policy HotpotRLVR --checkpoint /mnt/sharedata/ssd_large/users/wsy/project/rl/RLCR/temp/train/RLVR-hotpot
+  # CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B --inferencer self_consistency --policy HotpotRLVR --checkpoint /mnt/sharedata/ssd_large/users/wsy/project/rl/RLCR/temp/train/RLVR-hotpot
+  # CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B --inferencer p_true --policy HotpotRLVR --checkpoint /mnt/sharedata/ssd_large/users/wsy/project/rl/RLCR/temp/train/RLVR-hotpot
   # CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B --inferencer verbalized_confidence --policy HotpotRLVR --checkpoint /mnt/sharedata/ssd_large/users/wsy/project/rl/RLCR/temp/train/RLVR-hotpot
   # CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B --inferencer verbalized_confidence --policy HotpotRLCR --checkpoint /mnt/sharedata/ssd_large/users/wsy/project/rl/RLCR/temp/train/RLCR-base-hotpot
 done
