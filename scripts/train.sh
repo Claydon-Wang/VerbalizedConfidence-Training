@@ -7,7 +7,9 @@ export HF_DATASETS_CACHE=/mnt/sharedata/ssd_large/common/datasets/
 # RLVR
 # CUDA_VISIBLE_DEVICES=0,1,2,3 accelerate launch --num_processes 4 --config_file src/train/configs/launch/deepspeed.yaml -m src.train.train_main --dataset Hotpot --method RLVR --model Qwen25_1_5B
 # RLCR
-CUDA_VISIBLE_DEVICES=0,1,2,3 accelerate launch --num_processes 4 --config_file src/train/configs/launch/deepspeed.yaml -m src.train.train_main --dataset Hotpot --method RLCR --model Qwen25_1_5B
+# CUDA_VISIBLE_DEVICES=0,1,2,3 accelerate launch --num_processes 4 --config_file src/train/configs/launch/deepspeed.yaml -m src.train.train_main --dataset Hotpot --method RLCR --model Qwen25_1_5B
+# RLCR
+CUDA_VISIBLE_DEVICES=4,5,6,7 accelerate launch --num_processes 4 --config_file src/train/configs/launch/deepspeed.yaml -m src.train.train_main --dataset Hotpot --method CoCA --model Qwen25_1_5B
 
 
 ## MATH (6 GPU config) 

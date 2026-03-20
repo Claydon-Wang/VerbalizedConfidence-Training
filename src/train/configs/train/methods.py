@@ -35,5 +35,23 @@ class MathRLCR:
 
 
 @dataclass
+class CoCA:
+    trainer_name: str = "coca"
+    format_pattern: str = "think_answer_confidence"
+    sys_prompt_name: str = "think_answer_confidence"
+    optimization_rewards: dict[str, float] = field(default_factory=lambda: {"accuracy": 1.0, "brier": 1.0})
+    monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
+
+
+@dataclass
+class MathCoCA:
+    trainer_name: str = "coca"
+    format_pattern: str = "think_answer_confidence"
+    sys_prompt_name: str = "think_answer_confidence"
+    optimization_rewards: dict[str, float] = field(default_factory=lambda: {"accuracy": 1.0, "brier": 1.0})
+    monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
+
+
+@dataclass
 class RLCRSFT(MathRLCR):
     model_name_or_path: str = "mehuldamani/qwen-base-verifier-sft-v1"
