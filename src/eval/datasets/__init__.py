@@ -18,6 +18,7 @@ DATASET_REGISTRY = {
     "Math500": Math500,
     "SimpleQA": SimpleQA,
     "Trivia": Trivia,
+    "TriviaQA": Trivia,
 }
 
 

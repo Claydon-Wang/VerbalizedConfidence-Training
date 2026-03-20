@@ -1,3 +1,4 @@
+import gc
 import logging
 import re
 
@@ -16,6 +17,9 @@ class BaseInferencer:
         logging.info("Running eval for %s on %d samples", self.config.name, len(dataset_eval))
         generations = self.generate_outputs(model_inputs)
         generations = self.fill_missing_answers(model_inputs, generations)
+        if not self.requires_model_for_confidence_estimation():
+            self.model.close()
+            gc.collect()
         generations = self.estimate_confidence(model_inputs, generations)
 
         output_columns = self.extract_output_columns(generations)
@@ -88,11 +92,15 @@ class BaseInferencer:
     def estimate_confidence(self, texts, outputs):
         return outputs
 
+    def requires_model_for_confidence_estimation(self) -> bool:
+        return True
+
     def extract_output_columns(self, outputs):
         output_columns = {
             "generations": [],
             "answers": [],
             "confidences": [],
+            "is_conf_legal": [],
             "analyses": [],
         }
         field_patterns = {
@@ -104,7 +112,8 @@ class BaseInferencer:
         for output in outputs:
             row_generations = []
             row_answers = []
-            row_confidences = []
+            row_confidence_values = []
+            row_conf_legal = []
             row_analyses = []
             for generation in output.outputs:
                 generation_text = generation.text
@@ -113,19 +122,57 @@ class BaseInferencer:
                 answer_matches = re.findall(field_patterns["answer"], generation_text, re.DOTALL | re.MULTILINE)
                 confidence_matches = re.findall(field_patterns["confidence"], generation_text, re.DOTALL | re.MULTILINE)
                 analysis_matches = re.findall(field_patterns["analysis"], generation_text, re.DOTALL | re.MULTILINE)
+                confidence_text = confidence_matches[-1].strip() if confidence_matches else ""
+                conf_legal, conf_level = self.confidence_extractor(confidence_text)
                 row_answers.append(answer_matches[-1].strip() if answer_matches else "")
-                row_confidences.append(confidence_matches[-1].strip() if confidence_matches else "")
+                row_confidence_values.append(conf_level)
+                row_conf_legal.append(conf_legal)
                 row_analyses.append(analysis_matches[-1].strip() if analysis_matches else "")
 
             output_columns["generations"].append(row_generations)
             output_columns["answers"].append(row_answers)
-            output_columns["confidences"].append(row_confidences)
+            output_columns["confidences"].append(row_confidence_values)
+            output_columns["is_conf_legal"].append(row_conf_legal)
             output_columns["analyses"].append(row_analyses)
 
         return output_columns
 
+    def resolve_sys_prompt_name(self):
+        explicit_prompt_name = getattr(self.config, "response_prompt_name", None)
+        if explicit_prompt_name is not None:
+            return explicit_prompt_name
+
+        inferencer_name = getattr(self.config, "inferencer_name", None)
+        if inferencer_name == "self_consistency":
+            return "think_answer"
+
+        fine_tuned_dataset = getattr(self.config, "fine_tuned_dataset", None)
+        fine_tuned_algorithm = getattr(self.config, "fine_tuned_algorithm", None)
+        if fine_tuned_dataset == "hotpot" and fine_tuned_algorithm == "rlvr":
+            return "think_answer"
+        if fine_tuned_dataset == "hotpot" and fine_tuned_algorithm == "rlcr":
+            return "think_answer_analysis_confidence_detailed"
+        if fine_tuned_dataset == "math" and fine_tuned_algorithm in {"rlcr", "rlcr_sft"}:
+            return "think_answer_analysis_confidence"
+        if fine_tuned_dataset == "math" and fine_tuned_algorithm == "rlvr":
+            return "think_answer"
+
+        if inferencer_name == "verbalized_confidence":
+            return "think_answer_confidence"
+        if inferencer_name in {"answer_prob", "base"}:
+            return "think_answer"
+
+        raise ValueError(
+            "Unable to resolve system prompt name from config: "
+            f"policy={getattr(self.config, 'policy_name', None)}, "
+            f"inferencer={inferencer_name}, "
+            f"fine_tuned_dataset={fine_tuned_dataset}, "
+            f"fine_tuned_algorithm={fine_tuned_algorithm}"
+        )
+
     def build_sys_messages(self, dataset_eval):
-        sys_prompt = get_sys_prompt(self.config.sys_prompt_name)
+        prompt_name = self.resolve_sys_prompt_name()
+        sys_prompt = get_sys_prompt(prompt_name)
         sys_messages = []
         for example in dataset_eval:
             sys_messages.append(

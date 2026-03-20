@@ -27,13 +27,15 @@ class EvalBaseConfig:
     tensor_parallel_size: int | None = None
     model_name_or_path: str | None = None
     num_generations: int = 1
+    self_consistency_num_generations: int = 10
+    self_consistency_temperature: float = 0.7
     temperature: float = 0
     max_tokens: int = 4096
     seed: Optional[int] = 42
 
     # evaluation
-    check_fn: str | None = None
-    check_fn_args: Dict = field(default_factory=dict)
+    answer_verifier_name: str | None = None
+    answer_verifier_args: Dict = field(default_factory=dict)
     evaluator_name: str = "confidence"
     pass_k_vals: List = field(default_factory=list)
     ece_bins: int = 10
@@ -41,7 +43,9 @@ class EvalBaseConfig:
 
     # inference
     task_spec: str = "generation"
-    sys_prompt_name: str = "ver"
+    response_prompt_name: str | None = None
+    fine_tuned_dataset: str | None = None
+    fine_tuned_algorithm: str | None = None
     inferencer_name: str = "verbalized_confidence"
 
     # verification

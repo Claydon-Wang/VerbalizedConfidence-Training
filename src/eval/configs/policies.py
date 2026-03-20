@@ -3,37 +3,44 @@ from dataclasses import dataclass
 
 @dataclass
 class BasePolicyConfig:
-    sys_prompt_name: str
-    inferencer_name: str = "verbalized_confidence"
     task_spec: str = "generation"
     correctness_fn: str | None = None
+    fine_tuned_dataset: str | None = None
+    fine_tuned_algorithm: str | None = None
+    response_prompt_name: str | None = None
+    inferencer_name: str | None = None
 
 
 @dataclass
 class Baseline(BasePolicyConfig):
-    sys_prompt_name: str = "think_answer_confidence"
+    pass
 
 
 @dataclass
 class HotpotRLVR(BasePolicyConfig):
-    sys_prompt_name: str = "think_answer"
+    fine_tuned_dataset: str | None = "hotpot"
+    fine_tuned_algorithm: str | None = "rlvr"
 
 
 @dataclass
 class HotpotRLCR(BasePolicyConfig):
-    sys_prompt_name: str = "think_answer_analysis_confidence_detailed"
+    fine_tuned_dataset: str | None = "hotpot"
+    fine_tuned_algorithm: str | None = "rlcr"
 
 
 @dataclass
 class MathRLVR(BasePolicyConfig):
-    sys_prompt_name: str = "think_answer"
+    fine_tuned_dataset: str | None = "math"
+    fine_tuned_algorithm: str | None = "rlvr"
 
 
 @dataclass
 class MathRLCR(BasePolicyConfig):
-    sys_prompt_name: str = "think_answer_analysis_confidence"
+    fine_tuned_dataset: str | None = "math"
+    fine_tuned_algorithm: str | None = "rlcr"
 
 
 @dataclass
 class MathRLCRSFT(BasePolicyConfig):
-    sys_prompt_name: str = "think_answer_analysis_confidence"
+    fine_tuned_dataset: str | None = "math"
+    fine_tuned_algorithm: str | None = "rlcr_sft"

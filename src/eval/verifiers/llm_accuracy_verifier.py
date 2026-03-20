@@ -3,10 +3,58 @@ import gc
 from transformers import AutoTokenizer
 from vllm import LLM, SamplingParams
 
-from src.eval.inferencers.base_inferencer import BaseInferencer
+
+def build_llm_judge(config):
+    tokenizer = AutoTokenizer.from_pretrained(config.judge_model_name_or_path, trust_remote_code=True)
+    llm = LLM(
+        model=config.judge_model_name_or_path,
+        gpu_memory_utilization=config.judge_gpu_memory_utilization,
+        tensor_parallel_size=config.tensor_parallel_size,
+    )
+    return tokenizer, llm
 
 
-def llm_confidence_verifier(
+def close_llm_judge(llm):
+    del llm
+    gc.collect()
+
+
+def llm_answers_equivalent_batch(questions, answer_pairs, config, tokenizer=None, llm=None):
+    if not answer_pairs:
+        return []
+
+    sys_prompt = """
+    You are a judge that will be given a question and two candidate answers to that question.
+    Determine whether the two answers express the same final answer.
+    Ignore differences in wording, formatting, and explanation style.
+    Your response should be a single word. 'YES' if they are equivalent and 'NO' if they are not.
+    """
+
+    owns_judge = tokenizer is None or llm is None
+    if owns_judge:
+        tokenizer, llm = build_llm_judge(config)
+
+    prompts = []
+    for question, (answer_a, answer_b) in zip(questions, answer_pairs):
+        prompt = f"""
+        Question: {question}
+        Answer A: {answer_a}
+        Answer B: {answer_b}
+        """
+        processed_prompt = [{"role": "system", "content": sys_prompt}, {"role": "user", "content": prompt}]
+        tokenized_prompt = tokenizer.apply_chat_template(processed_prompt, truncation=False, add_generation_prompt=True)
+        prompts.append(tokenizer.decode(tokenized_prompt))
+
+    sampling_params = SamplingParams(n=1, temperature=0, max_tokens=config.judge_max_tokens)
+    outputs = llm.generate(prompts, sampling_params=sampling_params, use_tqdm=False)
+    responses = [1 if "yes" in output.outputs[0].text.lower() else 0 for output in outputs]
+
+    if owns_judge:
+        close_llm_judge(llm)
+    return responses
+
+
+def llm_verifier(
     local_dataset,
     config,
     format_fn="confidence_format",
@@ -14,9 +62,6 @@ def llm_confidence_verifier(
 ):
     label_dict = {"is_correct": []}
     is_correct = []
-    generation_len = []
-    confidence = []
-    is_conf_legal = []
     n = config.num_generations
 
     extracted_answers = []
@@ -34,7 +79,7 @@ def llm_confidence_verifier(
     """
 
     prompts = []
-    tokenizer = AutoTokenizer.from_pretrained(config.judge_model_name_or_path, trust_remote_code=True)
+    tokenizer, llm = build_llm_judge(config)
     for i in range(len(local_dataset)):
         for j in range(n):
             prompt = f"""
@@ -47,12 +92,7 @@ def llm_confidence_verifier(
             prompts.append(tokenizer.decode(tokenized_prompt))
 
     sampling_params = SamplingParams(n=1, temperature=0, max_tokens=config.judge_max_tokens)
-    llm = LLM(
-        model=config.judge_model_name_or_path,
-        gpu_memory_utilization=config.judge_gpu_memory_utilization,
-        tensor_parallel_size=config.tensor_parallel_size,
-    )
-    outputs = llm.generate(prompts, sampling_params=sampling_params)
+    outputs = llm.generate(prompts, sampling_params=sampling_params, use_tqdm=False)
 
     responses = []
     for output in outputs:
@@ -63,27 +103,14 @@ def llm_confidence_verifier(
         agg_responses.append(responses[i : i + n])
 
     for i in range(len(local_dataset)):
-        correctness_list, generation_len_list, confidence_list, conf_legal_list = [], [], [], []
-        generations = local_dataset[i]["generations"]
-        confidences = local_dataset[i]["confidences"]
-        for j, (generation_text, confidence_text) in enumerate(zip(generations, confidences)):
+        correctness_list = []
+        for j in range(n):
             actual_correctness = agg_responses[i][j]
-            conf_format, conf_level = BaseInferencer.confidence_extractor(confidence_text)
-            conf_legal_list.append(conf_format)
-            generation_len_list.append(len(generation_text))
-            confidence_list.append(conf_level)
             correctness_list.append(1 if actual_correctness == 1 else 0)
 
         is_correct.append(correctness_list)
-        generation_len.append(generation_len_list)
-        confidence.append(confidence_list)
-        is_conf_legal.append(conf_legal_list)
 
     label_dict["is_correct"] = is_correct
-    label_dict["generation_len"] = generation_len
-    label_dict["confidence"] = confidence
-    label_dict["is_conf_legal"] = is_conf_legal
 
-    del llm
-    gc.collect()
+    close_llm_judge(llm)
     return label_dict

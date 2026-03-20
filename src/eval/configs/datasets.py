@@ -6,61 +6,66 @@ class EvalDatasetConfig:
     dataset_name: str
     dataset_config: str | None = None
     split: str = "test"
-    check_fn: str = "confidence_verifier"
-    check_fn_args: dict = None
+    answer_verifier_name: str = "rule_verifier"
+    answer_verifier_args: dict = None
     pass_k_vals: list = None
 
     def __post_init__(self):
-        if self.check_fn_args is None:
-            self.check_fn_args = {}
+        if self.answer_verifier_args is None:
+            self.answer_verifier_args = {}
         if self.pass_k_vals is None:
             self.pass_k_vals = []
 
 
 @dataclass
-class Trivia(EvalDatasetConfig):
+class TriviaQA(EvalDatasetConfig):
     dataset_name: str = "claytonwang/trivia_eval"
-    check_fn: str = "llm_confidence_verifier"
+    answer_verifier_name: str = "llm_verifier"
 
 
 @dataclass
 class CommonsenseQA(EvalDatasetConfig):
     dataset_name: str = "claytonwang/commonsenseqa_eval"
-    check_fn: str = "llm_confidence_verifier"
+    answer_verifier_name: str = "llm_verifier"
 
 
 @dataclass
 class GPQA(EvalDatasetConfig):
     dataset_name: str = "claytonwang/gpqa_eval"
-    check_fn: str = "llm_confidence_verifier"
+    answer_verifier_name: str = "llm_verifier"
 
 
 @dataclass
 class GSM8K(EvalDatasetConfig):
     dataset_name: str = "claytonwang/gsm8k_eval"
+    answer_verifier_name: str = "rule_verifier"
 
 
 @dataclass
 class Hotpot(EvalDatasetConfig):
     dataset_name: str = "mehuldamani/hotpot_qa"
+    answer_verifier_name: str = "rule_verifier"
 
 
 @dataclass
 class HotpotVanilla(EvalDatasetConfig):
     dataset_name: str = "claytonwang/hotpot_qa_vanilla_eval"
+    answer_verifier_name: str = "rule_verifier"
 
 
 @dataclass
 class BigMathDigits(EvalDatasetConfig):
     dataset_name: str = "mehuldamani/big-math-digits"
+    answer_verifier_name: str = "rule_verifier"
 
 
 @dataclass
 class Math500(EvalDatasetConfig):
     dataset_name: str = "HuggingFaceH4/MATH-500"
+    answer_verifier_name: str = "rule_verifier"
 
 
 @dataclass
 class SimpleQA(EvalDatasetConfig):
     dataset_name: str = "basicv8vc/SimpleQA"
-    check_fn: str = "llm_confidence_verifier"
+    answer_verifier_name: str = "llm_verifier"

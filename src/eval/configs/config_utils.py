@@ -96,10 +96,10 @@ def update_config(
     model_name: str,
     policy_name: str,
     checkpoint_name: str | None = None,
+    inferencer_name: str | None = None,
     tensor_parallel_size: int | None = None,
 ):
     run_name = policy_name
-    output_path = os.path.join(model_name, policy_name)
     config = EvalBaseConfig()
     apply_config_overrides(config, base_config)
     apply_config_overrides(config, dataset_config)
@@ -111,6 +111,14 @@ def update_config(
     config.model_config_name = model_name
     config.policy_name = policy_name
     config.checkpoint_name = checkpoint_name
+    if checkpoint_name is not None:
+        config.model_name_or_path = checkpoint_name
+    if inferencer_name is not None:
+        config.inferencer_name = inferencer_name
+    if config.inferencer_name == "self_consistency":
+        config.num_generations = config.self_consistency_num_generations
+        config.temperature = config.self_consistency_temperature
+    output_path = os.path.join(model_name, policy_name, config.inferencer_name)
     config.name = run_name
     config.store_name = os.path.join(
         config.logs_root,
@@ -122,8 +130,6 @@ def update_config(
         dataset_name_to_slug(dataset_config.dataset_name),
         output_path,
     )
-    if checkpoint_name is not None:
-        config.model_name_or_path = checkpoint_name
     config.tensor_parallel_size = tensor_parallel_size if tensor_parallel_size is not None else detect_tensor_parallel_size()
     return config
 
@@ -133,6 +139,7 @@ def build_eval_config(
     model_name: str,
     policy_name: str | None = None,
     checkpoint_name: str | None = None,
+    inferencer_name: str | None = None,
     tensor_parallel_size: int | None = None,
 ):
     if not model_name:
@@ -157,5 +164,6 @@ def build_eval_config(
         model_name=model_name,
         policy_name=policy_name,
         checkpoint_name=checkpoint_name,
+        inferencer_name=inferencer_name,
         tensor_parallel_size=tensor_parallel_size,
     )
