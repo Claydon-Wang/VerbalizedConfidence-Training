@@ -150,10 +150,13 @@ class BaseInferencer:
         fine_tuned_algorithm = getattr(self.config, "fine_tuned_algorithm", None)
         if fine_tuned_dataset == "hotpot" and fine_tuned_algorithm == "rlvr":
             return "think_answer"
-        if fine_tuned_dataset == "hotpot" and fine_tuned_algorithm == "rlcr":
-            return "think_answer_analysis_confidence_detailed"
-        if fine_tuned_dataset == "math" and fine_tuned_algorithm in {"rlcr", "rlcr_sft"}:
-            return "think_answer_analysis_confidence"
+        # Original RLCR prompt routing kept for reference.
+        # if fine_tuned_dataset == "hotpot" and fine_tuned_algorithm == "rlcr":
+        #     return "think_answer_analysis_confidence_detailed"
+        # if fine_tuned_dataset == "math" and fine_tuned_algorithm in {"rlcr", "rlcr_sft"}:
+        #     return "think_answer_analysis_confidence"
+        if fine_tuned_algorithm in {"rlcr", "rlcr_sft", "coca"}:
+            return "think_answer_confidence"
         if fine_tuned_dataset == "math" and fine_tuned_algorithm == "rlvr":
             return "think_answer"
 

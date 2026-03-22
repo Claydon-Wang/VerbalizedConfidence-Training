@@ -77,7 +77,7 @@ Reliability diagrams are produced by the confidence evaluator when confidence an
 CUDA_VISIBLE_DEVICES=0 \
 python -m src.eval.eval_main \
   --dataset MMLUPro \
-  --model Qwen25_7BInstruct \
+  --model Qwen25_7B_Instruct \
   --inferencer verbalized_confidence
 ```
 

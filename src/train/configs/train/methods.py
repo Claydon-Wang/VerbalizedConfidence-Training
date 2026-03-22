@@ -15,8 +15,8 @@ class RLVR:
 @dataclass
 class RLCR:
     trainer_name: str = "rlcr"
-    format_pattern: str = "think_answer_analysis_confidence"
-    sys_prompt_name: str = "think_answer_analysis_confidence_detailed"
+    format_pattern: str = "think_answer_confidence"
+    sys_prompt_name: str = "think_answer_confidence"
     optimization_rewards: dict[str, float] = field(
         default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5}
     )
@@ -26,8 +26,8 @@ class RLCR:
 @dataclass
 class MathRLCR:
     trainer_name: str = "rlcr"
-    format_pattern: str = "think_answer_analysis_confidence"
-    sys_prompt_name: str = "think_answer_analysis_confidence"
+    format_pattern: str = "think_answer_confidence"
+    sys_prompt_name: str = "think_answer_confidence"
     optimization_rewards: dict[str, float] = field(
         default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5}
     )
@@ -39,7 +39,11 @@ class CoCA:
     trainer_name: str = "coca"
     format_pattern: str = "think_answer_confidence"
     sys_prompt_name: str = "think_answer_confidence"
-    optimization_rewards: dict[str, float] = field(default_factory=lambda: {"accuracy": 1.0, "brier": 1.0})
+    learning_rate: float = 1e-6
+    temperature: float = 1.0
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5}
+    )
     monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
 
 
@@ -48,7 +52,11 @@ class MathCoCA:
     trainer_name: str = "coca"
     format_pattern: str = "think_answer_confidence"
     sys_prompt_name: str = "think_answer_confidence"
-    optimization_rewards: dict[str, float] = field(default_factory=lambda: {"accuracy": 1.0, "brier": 1.0})
+    learning_rate: float = 1e-6
+    temperature: float = 1.0
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5}
+    )
     monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
 
 

@@ -16,10 +16,10 @@ class CoCATrainer(BaseGRPOTrainer):
     def validate_reward_specs(self, optimization_rewards, monitoring_rewards):
         super().validate_reward_specs(optimization_rewards, monitoring_rewards)
         optimization_reward_names = set(optimization_rewards)
-        required_rewards = {"accuracy", "brier"}
+        required_rewards = {"format", "accuracy", "brier"}
         if optimization_reward_names != required_rewards:
             raise ValueError(
-                "CoCATrainer requires optimization_rewards to be exactly {'accuracy', 'brier'}."
+                "CoCATrainer requires optimization_rewards to be exactly {'format', 'accuracy', 'brier'}."
             )
 
     def _normalize_group_rewards(self, rewards: torch.Tensor):
@@ -87,14 +87,13 @@ class CoCATrainer(BaseGRPOTrainer):
         last_match = matches[-1]
         return last_match.start(), last_match.end()
 
-    def _build_confidence_mask_for_completion(self, completion_ids_row, completion_text: str):
-        confidence_span = self._confidence_char_span(completion_text)
+    def _build_segment_mask_for_completion(self, completion_ids_row, completion_text: str, span):
         active_len = completion_ids_row.size(0)
-        confidence_mask = torch.zeros(active_len, dtype=torch.int, device=completion_ids_row.device)
-        if confidence_span is None:
-            return confidence_mask
+        segment_mask = torch.zeros(active_len, dtype=torch.int, device=completion_ids_row.device)
+        if span is None:
+            return segment_mask
 
-        span_start, span_end = confidence_span
+        span_start, span_end = span
         active_ids = completion_ids_row.tolist()
         tokenizer = self.processing_class
 
@@ -118,8 +117,8 @@ class CoCATrainer(BaseGRPOTrainer):
             if encoded_ids == non_special_ids:
                 for token_position, (token_start, token_end) in zip(non_special_positions, offsets):
                     if token_end > span_start and token_start < span_end:
-                        confidence_mask[token_position] = 1
-                return confidence_mask
+                        segment_mask[token_position] = 1
+                return segment_mask
         except Exception:
             pass
 
@@ -133,10 +132,17 @@ class CoCATrainer(BaseGRPOTrainer):
                 )
             )
             if token_span_end > span_start and prefix_start < span_end:
-                confidence_mask[idx] = 1
+                segment_mask[idx] = 1
             prefix_start = token_span_end
 
-        return confidence_mask
+        return segment_mask
+
+    def _build_confidence_mask_for_completion(self, completion_ids_row, completion_text: str):
+        return self._build_segment_mask_for_completion(
+            completion_ids_row,
+            completion_text,
+            self._confidence_char_span(completion_text),
+        )
 
     def build_segment_masks(self, completion_ids: torch.Tensor, completion_mask: torch.Tensor, completions_text: list[str]):
         confidence_masks = []
@@ -157,6 +163,16 @@ class CoCATrainer(BaseGRPOTrainer):
         prompts = generation_outputs["prompts"]
         completions = generation_outputs["completions"]
 
+        format_rewards_local = self.run_reward_function(
+            "format",
+            prompts,
+            completions,
+            generation_outputs["completion_ids_list"],
+            inputs,
+        )
+        format_rewards_local = torch.tensor(format_rewards_local, dtype=torch.float32, device=device)
+        format_rewards = gather(format_rewards_local)
+
         answers = [example["answer"] for example in inputs]
         sources = [example["source"] for example in inputs] if "source" in inputs[0] else None
         answer_rewards_local = self._compute_answer_rewards(completions, answers, sources)
@@ -171,7 +187,14 @@ class CoCATrainer(BaseGRPOTrainer):
         group_success_rate = group_success_rate.repeat_interleave(self.num_generations, dim=0)
         confidence_rewards = -torch.square(confidence_scores - group_success_rate)
 
-        optimization_rewards_per_func = torch.stack([answer_rewards, confidence_rewards], dim=1)
+        optimization_rewards_per_func = torch.stack([format_rewards, answer_rewards, confidence_rewards], dim=1)
+
+        answer_reward_weights = self.optimization_rewards
+        answer_objective_rewards = (
+            answer_reward_weights["format"] * format_rewards
+            + answer_reward_weights["accuracy"] * answer_rewards
+        )
+        confidence_objective_rewards = answer_reward_weights["brier"] * confidence_rewards
 
         monitoring_rewards_per_func = torch.zeros(len(prompts), len(self.monitoring_reward_names), device=device)
         for i, reward_name in enumerate(self.monitoring_reward_names):
@@ -188,8 +211,8 @@ class CoCATrainer(BaseGRPOTrainer):
         return {
             "optimization_rewards_per_func": optimization_rewards_per_func,
             "monitoring_rewards_per_func": monitoring_rewards_per_func,
-            "answer_rewards": answer_rewards,
-            "confidence_rewards": confidence_rewards,
+            "answer_rewards": answer_objective_rewards,
+            "confidence_rewards": confidence_objective_rewards,
             "confidence_scores": confidence_scores,
             "group_success_rate": group_success_rate,
         }

@@ -65,9 +65,9 @@ Current CoCA implementation details:
 ### Models
 
 - `Qwen25_1_5B`
-- `Qwen25_1_5BInstruct`
+- `Qwen25_1_5B_Instruct`
 - `Qwen25_7B`
-- `Qwen25_7BInstruct`
+- `Qwen25_7B_Instruct`
 
 ### Methods
 
@@ -90,7 +90,7 @@ accelerate launch \
   -m src.train.train_main \
   --dataset Hotpot \
   --method CoCA \
-  --model Qwen25_1_5BInstruct
+  --model Qwen25_1_5B_Instruct
 ```
 
 ### Hotpot + RLVR + Qwen2.5-1.5B
@@ -103,7 +103,7 @@ accelerate launch \
   -m src.train.train_main \
   --dataset Hotpot \
   --method RLVR \
-  --model Qwen25_1_5B
+  --model Qwen25_1_5B_Instruct
 ```
 
 ### Math + MathCoCA + Qwen2.5-1.5B
@@ -116,7 +116,7 @@ accelerate launch \
   -m src.train.train_main \
   --dataset Math \
   --method MathCoCA \
-  --model Qwen25_1_5BInstruct
+  --model Qwen25_1_5B_Instruct
 ```
 
 ## Tracking and Outputs
