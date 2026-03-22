@@ -7,8 +7,8 @@ export HF_DATASETS_CACHE=/mnt/sharedata/ssd_large/common/datasets/
 
 ## HOTPOT
 # RLVR
-# CUDA_VISIBLE_DEVICES=0,1,2,3 \
-# accelerate launch --num_processes 4 \
+# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
+# accelerate launch --num_processes 8 \
 #   --config_file src/train/configs/launch/deepspeed.yaml \
 #   -m src.train.train_main \
 #   --dataset Hotpot \
