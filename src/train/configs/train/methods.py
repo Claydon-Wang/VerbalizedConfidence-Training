@@ -41,7 +41,9 @@ class CoCA:
     sys_prompt_name: str = "think_answer_confidence"
     learning_rate: float = 1e-6
     temperature: float = 1.0
-    optimization_rewards: dict[str, float] = field(default_factory=lambda: {"accuracy": 1.0, "brier": 1.0})
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5}
+    )
     monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
 
 
@@ -52,7 +54,9 @@ class MathCoCA:
     sys_prompt_name: str = "think_answer_confidence"
     learning_rate: float = 1e-6
     temperature: float = 1.0
-    optimization_rewards: dict[str, float] = field(default_factory=lambda: {"accuracy": 1.0, "brier": 1.0})
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5}
+    )
     monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
 
 
