@@ -87,14 +87,13 @@ class CoCATrainer(BaseGRPOTrainer):
         last_match = matches[-1]
         return last_match.start(), last_match.end()
 
-    def _build_confidence_mask_for_completion(self, completion_ids_row, completion_text: str):
-        confidence_span = self._confidence_char_span(completion_text)
+    def _build_segment_mask_for_completion(self, completion_ids_row, completion_text: str, span):
         active_len = completion_ids_row.size(0)
-        confidence_mask = torch.zeros(active_len, dtype=torch.int, device=completion_ids_row.device)
-        if confidence_span is None:
-            return confidence_mask
+        segment_mask = torch.zeros(active_len, dtype=torch.int, device=completion_ids_row.device)
+        if span is None:
+            return segment_mask
 
-        span_start, span_end = confidence_span
+        span_start, span_end = span
         active_ids = completion_ids_row.tolist()
         tokenizer = self.processing_class
 
@@ -118,8 +117,8 @@ class CoCATrainer(BaseGRPOTrainer):
             if encoded_ids == non_special_ids:
                 for token_position, (token_start, token_end) in zip(non_special_positions, offsets):
                     if token_end > span_start and token_start < span_end:
-                        confidence_mask[token_position] = 1
-                return confidence_mask
+                        segment_mask[token_position] = 1
+                return segment_mask
         except Exception:
             pass
 
@@ -133,10 +132,17 @@ class CoCATrainer(BaseGRPOTrainer):
                 )
             )
             if token_span_end > span_start and prefix_start < span_end:
-                confidence_mask[idx] = 1
+                segment_mask[idx] = 1
             prefix_start = token_span_end
 
-        return confidence_mask
+        return segment_mask
+
+    def _build_confidence_mask_for_completion(self, completion_ids_row, completion_text: str):
+        return self._build_segment_mask_for_completion(
+            completion_ids_row,
+            completion_text,
+            self._confidence_char_span(completion_text),
+        )
 
     def build_segment_masks(self, completion_ids: torch.Tensor, completion_mask: torch.Tensor, completions_text: list[str]):
         confidence_masks = []

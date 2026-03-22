@@ -34,14 +34,14 @@ Typical evaluation launch:
 CUDA_VISIBLE_DEVICES=0 \
 python -m src.eval.eval_main \
   --dataset Hotpot \
-  --model Qwen25_1_5BInstruct \
+  --model Qwen25_1_5B_Instruct \
   --inferencer verbalized_confidence
 
 # RLVR
 CUDA_VISIBLE_DEVICES=0 \
 python -m src.eval.eval_main \
   --dataset Hotpot \
-  --model Qwen25_1_5BInstruct \
+  --model Qwen25_1_5B_Instruct \
   --inferencer verbalized_confidence \
   --policy HotpotRLVR \
   --checkpoint {checkpoint_dir_here}

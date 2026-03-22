@@ -18,7 +18,7 @@ class Qwen25_1_5B(BaseModelConfig):
 
 
 @dataclass
-class Qwen25_1_5BInstruct(BaseModelConfig):
+class Qwen25_1_5B_Instruct(BaseModelConfig):
     model_name_or_path: str = "Qwen/Qwen2.5-1.5B-Instruct"
 
 
@@ -28,5 +28,10 @@ class Qwen25_7B(BaseModelConfig):
 
 
 @dataclass
-class Qwen25_7BInstruct(BaseModelConfig):
+class Qwen25_7B_Instruct(BaseModelConfig):
     model_name_or_path: str = "Qwen/Qwen2.5-7B-Instruct"
+
+
+# Backward-compatible aliases for older CLI invocations.
+Qwen25_1_5BInstruct = Qwen25_1_5B_Instruct
+Qwen25_7BInstruct = Qwen25_7B_Instruct
