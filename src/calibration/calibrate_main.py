@@ -46,13 +46,23 @@ def default_output_dir(eval_path, method):
     return os.path.join(eval_dir, "calibration", method)
 
 
-def default_calibration_csv_path(eval_path, output_root=None):
+def default_split_output_roots(fit_path, eval_path, output_root=None):
     if output_root is not None:
-        return os.path.join(output_root, "calibration.csv")
-    return os.path.join(os.path.dirname(eval_path), "calibration", "calibration.csv")
+        return {
+            "fit": os.path.join(output_root, "train"),
+            "eval": os.path.join(output_root, "eval"),
+        }
+    return {
+        "fit": os.path.join(os.path.dirname(fit_path), "calibration"),
+        "eval": os.path.join(os.path.dirname(eval_path), "calibration"),
+    }
 
 
-def append_calibration_csv(csv_path, summary, output_dir):
+def calibration_csv_path(output_root):
+    return os.path.join(output_root, "calibration.csv")
+
+
+def append_calibration_csv(csv_path, summary, dataset_split, output_dir):
     os.makedirs(os.path.dirname(csv_path), exist_ok=True)
     file_exists = os.path.exists(csv_path)
     metric_keys = ["accuracy", "confidence_avg", "auroc", "brier_score", "ece", "nll"]
@@ -60,26 +70,65 @@ def append_calibration_csv(csv_path, summary, output_dir):
         writer = csv.DictWriter(f, fieldnames=CALIBRATION_CSV_COLUMNS)
         if not file_exists:
             writer.writeheader()
-        for dataset_split in ("fit", "eval"):
-            before_metrics = summary[f"{dataset_split}_before"]
-            after_metrics = summary[f"{dataset_split}_after"]
-            for metric_key in metric_keys:
-                writer.writerow(
-                    {
-                        "method": summary["method"],
-                        "fit_path": summary["fit_path"],
-                        "eval_path": summary["eval_path"],
-                        "dataset_split": dataset_split,
-                        "count": before_metrics["count"],
-                        "metric": metric_key,
-                        "before": before_metrics[metric_key],
-                        "after": after_metrics[metric_key],
-                        "output_dir": output_dir,
-                    }
-                )
+        before_metrics = summary[f"{dataset_split}_before"]
+        after_metrics = summary[f"{dataset_split}_after"]
+        for metric_key in metric_keys:
+            writer.writerow(
+                {
+                    "method": summary["method"],
+                    "fit_path": summary["fit_path"],
+                    "eval_path": summary["eval_path"],
+                    "dataset_split": dataset_split,
+                    "count": before_metrics["count"],
+                    "metric": metric_key,
+                    "before": before_metrics[metric_key],
+                    "after": after_metrics[metric_key],
+                    "output_dir": output_dir,
+                }
+            )
 
 
-def run_one_method(method, fit_path, eval_path, output_dir, ece_bins):
+def write_split_artifacts(output_dir, method, split_name, rows, calibrated_confidences, labels, raw_confidences, metrics, summary):
+    calibrated_rows = attach_calibrated_confidences(rows, calibrated_confidences)
+    os.makedirs(output_dir, exist_ok=True)
+    write_jsonl(os.path.join(output_dir, "calibrated_predictions.jsonl"), calibrated_rows)
+    write_json(
+        os.path.join(output_dir, "calibrator.json"),
+        {
+            "fit_path": summary["fit_path"],
+            "eval_path": summary["eval_path"],
+            "method": method,
+            "calibrator": summary["calibrator"],
+        },
+    )
+    write_json(
+        os.path.join(output_dir, "metrics.json"),
+        {
+            "method": method,
+            "dataset_split": split_name,
+            "fit_path": summary["fit_path"],
+            "eval_path": summary["eval_path"],
+            "before": metrics["before"],
+            "after": metrics["after"],
+        },
+    )
+    plot_reliability_diagram(
+        labels,
+        raw_confidences,
+        n_bins=summary["ece_bins"],
+        title=f"{method} {split_name} before",
+        save_path=os.path.join(output_dir, "reliability_before.png"),
+    ).close()
+    plot_reliability_diagram(
+        labels,
+        calibrated_confidences,
+        n_bins=summary["ece_bins"],
+        title=f"{method} {split_name} after",
+        save_path=os.path.join(output_dir, "reliability_after.png"),
+    ).close()
+
+
+def run_one_method(method, fit_path, eval_path, fit_output_dir, eval_output_dir, ece_bins):
     fit_rows = load_predictions_jsonl(fit_path)
     eval_rows = load_predictions_jsonl(eval_path)
     fit_confidences, fit_labels = extract_confidence_labels(fit_rows)
@@ -89,59 +138,41 @@ def run_one_method(method, fit_path, eval_path, output_dir, ece_bins):
     calibrator.fit(fit_confidences, fit_labels)
     calibrated_fit_confidences = calibrator.transform(fit_confidences)
     calibrated_eval_confidences = calibrator.transform(eval_confidences)
-    calibrated_eval_rows = attach_calibrated_confidences(eval_rows, calibrated_eval_confidences)
-
-    os.makedirs(output_dir, exist_ok=True)
-    write_jsonl(os.path.join(output_dir, "calibrated_predictions.jsonl"), calibrated_eval_rows)
-    write_json(
-        os.path.join(output_dir, "calibrator.json"),
-        {
-            "fit_path": fit_path,
-            "eval_path": eval_path,
-            "method": method,
-            "calibrator": calibrator.to_metadata(),
-        },
-    )
 
     summary = {
         "fit_path": fit_path,
         "eval_path": eval_path,
         "method": method,
+        "calibrator": calibrator.to_metadata(),
+        "ece_bins": ece_bins,
         "fit_before": summarize_metrics(fit_labels, fit_confidences, ece_bins),
         "fit_after": summarize_metrics(fit_labels, calibrated_fit_confidences, ece_bins),
         "eval_before": summarize_metrics(eval_labels, eval_confidences, ece_bins),
         "eval_after": summarize_metrics(eval_labels, calibrated_eval_confidences, ece_bins),
     }
-    write_json(os.path.join(output_dir, "metrics.json"), summary)
 
-    plot_reliability_diagram(
+    write_split_artifacts(
+        fit_output_dir,
+        method,
+        "fit",
+        fit_rows,
+        calibrated_fit_confidences,
         fit_labels,
         fit_confidences,
-        n_bins=ece_bins,
-        title=f"{method} fit before",
-        save_path=os.path.join(output_dir, "fit_reliability_before.png"),
-    ).close()
-    plot_reliability_diagram(
-        fit_labels,
-        calibrated_fit_confidences,
-        n_bins=ece_bins,
-        title=f"{method} fit after",
-        save_path=os.path.join(output_dir, "fit_reliability_after.png"),
-    ).close()
-    plot_reliability_diagram(
+        {"before": summary["fit_before"], "after": summary["fit_after"]},
+        summary,
+    )
+    write_split_artifacts(
+        eval_output_dir,
+        method,
+        "eval",
+        eval_rows,
+        calibrated_eval_confidences,
         eval_labels,
         eval_confidences,
-        n_bins=ece_bins,
-        title=f"{method} eval before",
-        save_path=os.path.join(output_dir, "eval_reliability_before.png"),
-    ).close()
-    plot_reliability_diagram(
-        eval_labels,
-        calibrated_eval_confidences,
-        n_bins=ece_bins,
-        title=f"{method} eval after",
-        save_path=os.path.join(output_dir, "eval_reliability_after.png"),
-    ).close()
+        {"before": summary["eval_before"], "after": summary["eval_after"]},
+        summary,
+    )
     return summary
 
 
@@ -171,16 +202,14 @@ def main():
     args = parse_args()
     eval_path = args.eval_path or args.fit_path
     summaries = []
-    calibration_csv_path = default_calibration_csv_path(eval_path, args.output_root)
+    split_output_roots = default_split_output_roots(args.fit_path, eval_path, args.output_root)
     for method in args.methods:
-        output_dir = (
-            os.path.join(args.output_root, method)
-            if args.output_root is not None
-            else default_output_dir(eval_path, method)
-        )
-        summary = run_one_method(method, args.fit_path, eval_path, output_dir, args.ece_bins)
+        fit_output_dir = os.path.join(split_output_roots["fit"], method)
+        eval_output_dir = os.path.join(split_output_roots["eval"], method)
+        summary = run_one_method(method, args.fit_path, eval_path, fit_output_dir, eval_output_dir, args.ece_bins)
         summaries.append(summary)
-        append_calibration_csv(calibration_csv_path, summary, output_dir)
+        append_calibration_csv(calibration_csv_path(split_output_roots["fit"]), summary, "fit", fit_output_dir)
+        append_calibration_csv(calibration_csv_path(split_output_roots["eval"]), summary, "eval", eval_output_dir)
         print(f"[{method}] fit_path={summary['fit_path']}")
         print(f"[{method}] eval_path={summary['eval_path']}")
         print(f"[{method}] fit ECE before={summary['fit_before']['ece']:.4f}, after={summary['fit_after']['ece']:.4f}")
@@ -196,11 +225,15 @@ def main():
             f"[{method}] eval Brier before={summary['eval_before']['brier_score']:.4f}, "
             f"after={summary['eval_after']['brier_score']:.4f}"
         )
-        print(f"[{method}] output_dir={output_dir}")
+        print(f"[{method}] fit_output_dir={fit_output_dir}")
+        print(f"[{method}] eval_output_dir={eval_output_dir}")
 
     if len(summaries) > 1:
-        comparison_root = args.output_root or os.path.join(os.path.dirname(eval_path), "calibration")
-        write_json(os.path.join(comparison_root, "comparison.json"), {"runs": summaries})
+        write_json(os.path.join(split_output_roots["fit"], "comparison.json"), {"runs": summaries, "dataset_split": "fit"})
+        write_json(
+            os.path.join(split_output_roots["eval"], "comparison.json"),
+            {"runs": summaries, "dataset_split": "eval"},
+        )
 
 
 if __name__ == "__main__":
