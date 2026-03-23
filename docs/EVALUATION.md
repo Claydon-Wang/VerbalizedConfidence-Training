@@ -86,7 +86,7 @@ python -m src.eval.eval_main \
 ```bash
 CUDA_VISIBLE_DEVICES=0 \
 python -m src.eval.eval_main \
-  --dataset Hotpot \
+  --dataset HotpotRLCR_Eval \
   --model Qwen25_1_5B \
   --inferencer verbalized_confidence \
   --policy HotpotRLVR \
@@ -98,10 +98,24 @@ python -m src.eval.eval_main \
 ```bash
 CUDA_VISIBLE_DEVICES=0 \
 python -m src.eval.eval_main \
-  --dataset Hotpot \
+  --dataset HotpotRLCR_Eval \
   --model Qwen25_1_5B \
   --inferencer verbalized_confidence \
   --policy HotpotRLCR \
+  --checkpoint /path/to/checkpoint
+```
+
+`HotpotRLCR_Eval` uses the `test` split of `mehuldamani/hotpot_qa`. To evaluate on the training split of the same dataset, use `HotpotRLCR_Train`.
+
+### Evaluate on the Hotpot train split
+
+```bash
+CUDA_VISIBLE_DEVICES=0 \
+python -m src.eval.eval_main \
+  --dataset HotpotRLCR_Train \
+  --model Qwen25_1_5B \
+  --inferencer verbalized_confidence \
+  --policy HotpotRLVR \
   --checkpoint /path/to/checkpoint
 ```
 
@@ -109,7 +123,7 @@ python -m src.eval.eval_main \
 
 Evaluation artifacts are written under `logs/eval/`, including:
 
-- raw predictions
+- raw predictions in `predictions.jsonl` under each run's `log_path`
 - metric summaries
 - calibration outputs
 - reliability diagrams

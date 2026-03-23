@@ -98,7 +98,7 @@ class BaseInferencer:
     def extract_output_columns(self, outputs):
         output_columns = {
             "generations": [],
-            "answers": [],
+            "predictions": [],
             "confidences": [],
             "is_conf_legal": [],
             "analyses": [],
@@ -111,7 +111,7 @@ class BaseInferencer:
 
         for output in outputs:
             row_generations = []
-            row_answers = []
+            row_predictions = []
             row_confidence_values = []
             row_conf_legal = []
             row_analyses = []
@@ -124,13 +124,13 @@ class BaseInferencer:
                 analysis_matches = re.findall(field_patterns["analysis"], generation_text, re.DOTALL | re.MULTILINE)
                 confidence_text = confidence_matches[-1].strip() if confidence_matches else ""
                 conf_legal, conf_level = self.confidence_extractor(confidence_text)
-                row_answers.append(answer_matches[-1].strip() if answer_matches else "")
+                row_predictions.append(answer_matches[-1].strip() if answer_matches else "")
                 row_confidence_values.append(conf_level)
                 row_conf_legal.append(conf_legal)
                 row_analyses.append(analysis_matches[-1].strip() if analysis_matches else "")
 
             output_columns["generations"].append(row_generations)
-            output_columns["answers"].append(row_answers)
+            output_columns["predictions"].append(row_predictions)
             output_columns["confidences"].append(row_confidence_values)
             output_columns["is_conf_legal"].append(row_conf_legal)
             output_columns["analyses"].append(row_analyses)

@@ -6,7 +6,7 @@ GPU=7
 INFERENCER=verbalized_confidence
 
 DATASETS=(
-  "Hotpot"
+  "HotpotRLCR_Eval"
   "HotpotVanilla"
   "SimpleQA"
   "TriviaQA"

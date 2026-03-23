@@ -177,3 +177,4 @@ results/
 *.pyo
 *.pyd
 data
+scripts/daily_exp/

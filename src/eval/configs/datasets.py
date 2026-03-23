@@ -42,8 +42,15 @@ class GSM8K(EvalDatasetConfig):
 
 
 @dataclass
-class Hotpot(EvalDatasetConfig):
+class HotpotRLCR_Eval(EvalDatasetConfig):
     dataset_name: str = "mehuldamani/hotpot_qa"
+    answer_verifier_name: str = "rule_verifier"
+
+
+@dataclass
+class HotpotRLCR_Train(EvalDatasetConfig):
+    dataset_name: str = "mehuldamani/hotpot_qa"
+    split: str = "train"
     answer_verifier_name: str = "rule_verifier"
 
 

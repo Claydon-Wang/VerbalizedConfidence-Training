@@ -49,10 +49,10 @@ def rule_verifier(
 
     for i in range(len(local_dataset)):
         correctness_list = []
-        answers = local_dataset[i]["answers"]
+        predictions = local_dataset[i]["predictions"]
         gold_answer = local_dataset[i]["answer"]
 
-        for answer_text in answers:
+        for answer_text in predictions:
             args = {"completions": [[{"role": "assistant", "content": answer_text}]], "answer": [gold_answer]}
             actual_correctness = correctness_fn(**args)[0]
             correctness_list.append(1 if actual_correctness == 1 else 0)

@@ -119,15 +119,16 @@ def update_config(
         config.num_generations = config.self_consistency_num_generations
         config.temperature = config.self_consistency_temperature
     output_path = os.path.join(model_name, policy_name, config.inferencer_name)
+    dataset_store_name = type(dataset_config).__name__
     config.name = run_name
     config.store_name = os.path.join(
         config.logs_root,
-        dataset_name_to_slug(dataset_config.dataset_name),
+        dataset_store_name,
         output_path,
     )
     config.log_path = os.path.join(
         config.logs_root,
-        dataset_name_to_slug(dataset_config.dataset_name),
+        dataset_store_name,
         output_path,
     )
     config.tensor_parallel_size = tensor_parallel_size if tensor_parallel_size is not None else detect_tensor_parallel_size()

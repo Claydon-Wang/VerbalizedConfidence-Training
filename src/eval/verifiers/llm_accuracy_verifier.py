@@ -67,7 +67,7 @@ def llm_verifier(
     extracted_answers = []
     for i in range(len(local_dataset)):
         q_spec_ans = []
-        for answer_text in local_dataset[i]["answers"]:
+        for answer_text in local_dataset[i]["predictions"]:
             q_spec_ans.append(answer_text if answer_text else "I don't know")
         extracted_answers.append(q_spec_ans)
 

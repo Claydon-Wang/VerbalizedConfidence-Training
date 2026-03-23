@@ -56,8 +56,8 @@ class ConfidenceEvaluator(BaseEvaluator):
         metrics["confidence_legal_ratio"] = np.mean(np.array(is_conf_legal))
         return metrics
 
-    def record_results(self, metrics, dataset_eval=None):
-        super().record_results(metrics)
+    def save_results(self, metrics, dataset_eval=None):
+        super().save_results(metrics, dataset_eval=dataset_eval)
         if (
             not self.config.save_reliability_diagram
             or self.config.log_path is None
