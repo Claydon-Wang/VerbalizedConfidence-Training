@@ -82,3 +82,23 @@ class MMLUPro(EvalDatasetConfig):
 class SimpleQA(EvalDatasetConfig):
     dataset_name: str = "basicv8vc/SimpleQA"
     answer_verifier_name: str = "llm_verifier"
+
+
+@dataclass
+class ScienceQA(EvalDatasetConfig):
+    dataset_name: str = "derek-thomas/ScienceQA"
+    answer_verifier_name: str = "rule_verifier"
+
+
+@dataclass
+class SQuAD(EvalDatasetConfig):
+    dataset_name: str = "rajpurkar/squad"
+    split: str = "validation"
+    answer_verifier_name: str = "rule_verifier"
+
+
+@dataclass
+class BoolQ(EvalDatasetConfig):
+    dataset_name: str = "google/boolq"
+    split: str = "validation"
+    answer_verifier_name: str = "rule_verifier"

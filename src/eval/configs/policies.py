@@ -35,6 +35,12 @@ class HotpotCoCA(BasePolicyConfig):
 
 
 @dataclass
+class HotpotCoCABayesian(BasePolicyConfig):
+    fine_tuned_dataset: str | None = "hotpot"
+    fine_tuned_algorithm: str | None = "coca_bayesian"
+
+
+@dataclass
 class MathRLVR(BasePolicyConfig):
     fine_tuned_dataset: str | None = "math"
     fine_tuned_algorithm: str | None = "rlvr"
@@ -50,6 +56,12 @@ class MathRLCR(BasePolicyConfig):
 class MathCoCA(BasePolicyConfig):
     fine_tuned_dataset: str | None = "math"
     fine_tuned_algorithm: str | None = "coca"
+
+
+@dataclass
+class MathCoCABayesian(BasePolicyConfig):
+    fine_tuned_dataset: str | None = "math"
+    fine_tuned_algorithm: str | None = "coca_bayesian"
 
 
 @dataclass

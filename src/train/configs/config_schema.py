@@ -271,6 +271,36 @@ class GRPOConfig(trl.GRPOConfig):
         metadata={"help": "Whether to shuffle the training dataset."},
     )
 
+    bayesian_prior_path: Optional[str] = field(
+        default=None,
+        metadata={"help": "Path to calibrated_predictions.jsonl used as the Bayesian prior source."},
+    )
+
+    bayesian_eval_prior_path: Optional[str] = field(
+        default=None,
+        metadata={"help": "Optional eval prior path. If unset, evaluation falls back to bayesian_prior_path."},
+    )
+
+    bayesian_alpha_ratio: float = field(
+        default=1.0,
+        metadata={"help": "Prior-strength ratio. The effective pseudo-count is bayesian_alpha_ratio * num_generations."},
+    )
+
+    bayesian_prior_field: str = field(
+        default="calibrated_confidences",
+        metadata={"help": "Field name to read prior confidence values from inside the prior jsonl."},
+    )
+
+    bayesian_prior_reduce: str = field(
+        default="mean",
+        metadata={"help": "How to reduce a list of prior confidences to one value per question. Supported: mean, first."},
+    )
+
+    bayesian_require_question_match: bool = field(
+        default=True,
+        metadata={"help": "Whether to validate that the prior jsonl question matches the training example question."},
+    )
+
     def __post_init__(self):
         super().__post_init__()
 

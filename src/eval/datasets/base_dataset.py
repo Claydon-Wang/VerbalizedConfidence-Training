@@ -29,7 +29,7 @@ class BaseDataset(ABC):
         def mapping(example, idx):
             question = example[question_key]
             answer = example[answer_key]
-            sample_id = idx + 1
+            sample_id = example[id_key] if id_key is not None and id_key in example else idx + 1
             return {"id": sample_id, "question": question, "answer": answer}
 
         dataset = dataset.map(mapping, with_indices=True)

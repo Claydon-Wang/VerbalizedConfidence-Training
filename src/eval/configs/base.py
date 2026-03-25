@@ -17,7 +17,7 @@ class EvalBaseConfig:
     logs_root: str = "logs/eval"
     store_name: str | None = None
     log_path: str | None = None
-    save_predictions_jsonl: bool = True
+    save_predictions_jsonl: bool = False
     predictions_jsonl_name: str = "predictions.jsonl"
     max_question_save_tokens: int | None = 200
     name: str = "Baseline"
