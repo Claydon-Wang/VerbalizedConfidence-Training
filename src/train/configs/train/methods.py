@@ -35,6 +35,23 @@ class MathRLCR:
 
 
 @dataclass
+class RLCRContrastive:
+    trainer_name: str = "rlcr_contrastive"
+    format_pattern: str = "think_answer_confidence"
+    sys_prompt_name: str = "think_answer_confidence"
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5, "separation": 0.1}
+    )
+    monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
+    separation_margin: float = 0.1
+
+
+@dataclass
+class MathRLCRContrastive(RLCRContrastive):
+    pass
+
+
+@dataclass
 class CoCA:
     trainer_name: str = "coca"
     format_pattern: str = "think_answer_confidence"

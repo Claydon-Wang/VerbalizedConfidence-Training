@@ -55,4 +55,5 @@ class EvalBaseConfig:
     correctness_fn: str | None = None
     judge_model_name_or_path: str = "meta-llama/Llama-3.1-8B-Instruct"
     judge_gpu_memory_utilization: float = 0.8
+    judge_max_model_len: int = 50000
     judge_max_tokens: int = 20

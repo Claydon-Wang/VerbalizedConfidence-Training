@@ -1,6 +1,7 @@
 import re
 from math_verify import verify,parse
 import string
+from typing import Optional
 
 def normalize_answer(s):
 
@@ -21,6 +22,23 @@ def normalize_answer(s):
 
 def exact_match_score(prediction, ground_truth):
     return (normalize_answer(prediction) == normalize_answer(ground_truth))
+
+
+def _extract_last_tag_value(content, tag_name):
+    pattern = rf"<{tag_name}>(.*?)</{tag_name}>"
+    matches = re.findall(pattern, content, re.DOTALL | re.MULTILINE)
+    return matches[-1] if matches else ""
+
+
+def extract_confidence_value(content) -> Optional[float]:
+    raw_confidence = _extract_last_tag_value(content, "confidence")
+    if raw_confidence == "":
+        return None
+    try:
+        confidence = float(raw_confidence)
+    except Exception:
+        return None
+    return max(0.0, min(confidence, 1.0))
 
 
 def format_reward(format_pattern,completions, **kwargs):
@@ -87,7 +105,6 @@ def accuracy_reward(format_pattern,completions,answer,source=None,**kwargs):
 
 def brier_reward(format_pattern,completions,answer,source=None, **kwargs):
     """Reward function that checks if the completion is correct."""
-    confidence_pattern = r"<confidence>(.*?)</confidence>"
     completion_contents = [completion[0]["content"] for completion in completions]
     matches = []
     correctness_rewards = accuracy_reward(format_pattern,completions,answer,source) 
@@ -96,67 +113,86 @@ def brier_reward(format_pattern,completions,answer,source=None, **kwargs):
         if fr == 0:
             matches.append(0) 
         else:
-            #extract the confidence and give the reward as brier score
-            confidence_matches = re.findall(confidence_pattern, content, re.DOTALL | re.MULTILINE)  # Get all <confidence>...</confidence> occurrences
-            last_confidence = confidence_matches[-1] if confidence_matches else ""  # Get the last confidence, if exists
-            if last_confidence == "":
+            conf = extract_confidence_value(content)
+            if conf is None:
                 matches.append(0)
             else:
-                try:
-                    conf = float(last_confidence)
-                    reward = 1 - (cr - conf)**2
-                    matches.append(reward)
-                except:
-                    print("Could not parse confidence: ", last_confidence, "Something might be wrong")
-                    matches.append(0)
+                reward = 1 - (cr - conf)**2
+                matches.append(reward)
     return matches
 
 def mean_confidence_reward(completions,answer, **kwargs):
     """Reward function that extracts the last occurrence of text inside the answer tags and then checks if a label is present there"""
-    confidence_pattern = r"<confidence>(.*?)</confidence>"
     completion_contents = [completion[0]["content"] for completion in completions]
     eval_contents = [e for e in answer] 
     matches = []
 
     for content,e in zip(completion_contents,eval_contents):
-        confidence_matches = re.findall(confidence_pattern, content, re.DOTALL | re.MULTILINE)  # Get all <confidence>...</confidence> occurrences
-        last_confidence = confidence_matches[-1] if confidence_matches else ""  # Get the last confidence, if exists
-        if last_confidence == "":
+        confidence = extract_confidence_value(content)
+        if confidence is None:
             matches.append(0.0)
         else:
-            try:
-                confidence = float(last_confidence)
-                #clip confidence to be between 0 and 1
-                confidence = max(0.0, min(confidence, 1.0))
-            except:
-                confidence = 0.0
             matches.append(confidence)
     return matches
 
 def confidence_one_or_zero(completions,answer, **kwargs):
     """Reward function that extracts the last occurrence of text inside the answer tags and then checks if a label is present there"""
-    confidence_pattern = r"<confidence>(.*?)</confidence>"
     completion_contents = [completion[0]["content"] for completion in completions]
     eval_contents = [e for e in answer] 
     matches = []
 
     for content,e in zip(completion_contents,eval_contents):
-        confidence_matches = re.findall(confidence_pattern, content, re.DOTALL | re.MULTILINE)  # Get all <confidence>...</confidence> occurrences
-        last_confidence = confidence_matches[-1] if confidence_matches else ""  # Get the last confidence, if exists
-        if last_confidence == "":
+        confidence = extract_confidence_value(content)
+        if confidence is None:
             matches.append(0.0)
         else:
-            try:
-                confidence = float(last_confidence)
-                #clip confidence to be between 0 and 1
-                confidence = max(0.0, min(confidence, 1.0))
-            except:
-                confidence = 0.0
             if abs(confidence - 1) < 0.01 or abs(confidence - 0) < 0.01:
                 matches.append(1.0)
             else:
                 matches.append(0.0)
     return matches
+
+
+def separation_reward(completions, answer, group_size=None, separation_margin=0.1, source=None, format_pattern=None, **kwargs):
+    completion_contents = [completion[0]["content"] for completion in completions]
+    if group_size is None or group_size <= 0:
+        return [0.0 for _ in completion_contents]
+
+    format_rewards = format_reward(format_pattern, completions) if format_pattern is not None else [1.0] * len(completion_contents)
+    correctness_rewards = accuracy_reward(
+        format_pattern=format_pattern,
+        completions=completions,
+        answer=answer,
+        source=source,
+    )
+    confidences = [
+        extract_confidence_value(content) if format_ok == 1.0 else None
+        for content, format_ok in zip(completion_contents, format_rewards)
+    ]
+    rewards = [0.0 for _ in completion_contents]
+
+    for group_start in range(0, len(completion_contents), group_size):
+        group_end = min(group_start + group_size, len(completion_contents))
+        group_correctness = correctness_rewards[group_start:group_end]
+        group_confidences = confidences[group_start:group_end]
+
+        pos_confidences = [conf for conf, label in zip(group_confidences, group_correctness) if label == 1.0 and conf is not None]
+        neg_confidences = [conf for conf, label in zip(group_confidences, group_correctness) if label == 0.0 and conf is not None]
+        pos_mean = sum(pos_confidences) / len(pos_confidences) if pos_confidences else None
+        neg_mean = sum(neg_confidences) / len(neg_confidences) if neg_confidences else None
+
+        for offset, (label, conf) in enumerate(zip(group_correctness, group_confidences)):
+            if conf is None:
+                rewards[group_start + offset] = 0.0
+                continue
+            if label == 1.0 and neg_mean is not None:
+                rewards[group_start + offset] = -max(0.0, separation_margin - (conf - neg_mean))
+            elif label == 0.0 and pos_mean is not None:
+                rewards[group_start + offset] = -max(0.0, separation_margin - (pos_mean - conf))
+            else:
+                rewards[group_start + offset] = 0.0
+
+    return rewards
 if __name__ == '__main__':
     s = "    h   ello whatever </think> <answer> The number of non-empty subsets 31 </answer> <confidence> 0.9 </confidence>   \n \n  "
  

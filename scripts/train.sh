@@ -43,6 +43,26 @@ export HF_DATASETS_CACHE=/mnt/sharedata/ssd_large/common/datasets/
 #   --model Qwen25_1_5B_Instruct
 
 
+# RLCR Contrastive
+# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
+# accelerate launch --num_processes 8 \
+#   --config_file src/train/configs/launch/deepspeed.yaml \
+#   -m src.train.train_main \
+#   --dataset Hotpot \
+#   --method RLCRContrastive \
+#   --model Qwen25_1_5B_Instruct \
+#   --separation_weight 0.1 \
+#   --separation_margin 0.2
+
+# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
+# accelerate launch --num_processes 8 \
+#   --config_file src/train/configs/launch/deepspeed.yaml \
+#   -m src.train.train_main \
+#   --dataset Hotpot \
+#   --method RLCRContrastive \
+#   --model Qwen25_1_5B_Instruct \
+#   --separation_weight 0.1 \
+#   --separation_margin 0.3
 ## MATH
 # RLVR
 # CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 \

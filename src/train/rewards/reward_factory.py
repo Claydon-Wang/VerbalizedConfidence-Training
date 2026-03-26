@@ -6,6 +6,7 @@ from src.train.rewards.reward_functions import (
     confidence_one_or_zero,
     format_reward,
     mean_confidence_reward,
+    separation_reward,
 )
 
 
@@ -20,6 +21,8 @@ def build_reward_function(reward_name, format_pattern):
         return mean_confidence_reward
     if reward_name == "confidence_one_or_zero":
         return confidence_one_or_zero
+    if reward_name == "separation":
+        return separation_reward
     raise ValueError(f"Unknown reward name: {reward_name}")
 
 

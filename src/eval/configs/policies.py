@@ -29,6 +29,12 @@ class HotpotRLCR(BasePolicyConfig):
 
 
 @dataclass
+class HotpotRLCRContrastive(BasePolicyConfig):
+    fine_tuned_dataset: str | None = "hotpot"
+    fine_tuned_algorithm: str | None = "rlcr_contrastive"
+
+
+@dataclass
 class HotpotCoCA(BasePolicyConfig):
     fine_tuned_dataset: str | None = "hotpot"
     fine_tuned_algorithm: str | None = "coca"
@@ -50,6 +56,12 @@ class MathRLVR(BasePolicyConfig):
 class MathRLCR(BasePolicyConfig):
     fine_tuned_dataset: str | None = "math"
     fine_tuned_algorithm: str | None = "rlcr"
+
+
+@dataclass
+class MathRLCRContrastive(BasePolicyConfig):
+    fine_tuned_dataset: str | None = "math"
+    fine_tuned_algorithm: str | None = "rlcr_contrastive"
 
 
 @dataclass

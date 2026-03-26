@@ -36,12 +36,21 @@ def load_config(argv):
     pre_parser.add_argument("--dataset")
     pre_parser.add_argument("--method")
     pre_parser.add_argument("--model")
+    pre_parser.add_argument("--separation_weight", type=float)
+    pre_parser.add_argument("--separation_margin", type=float)
     known_args, _ = pre_parser.parse_known_args(argv[1:])
 
     if not all([known_args.dataset, known_args.method, known_args.model]):
         raise ValueError("Training requires --dataset <Class> --method <Class> --model <Class>")
 
-    return split_config_dict(build_train_config(known_args.dataset, known_args.method, known_args.model))
+    config_dict = build_train_config(known_args.dataset, known_args.method, known_args.model)
+    if known_args.separation_weight is not None:
+        optimization_rewards = dict(config_dict.get("optimization_rewards", {}))
+        optimization_rewards["separation"] = known_args.separation_weight
+        config_dict["optimization_rewards"] = optimization_rewards
+    if known_args.separation_margin is not None:
+        config_dict["separation_margin"] = known_args.separation_margin
+    return split_config_dict(config_dict)
 
 def main(script_args, training_args, model_args):
     set_seed(training_args.seed)

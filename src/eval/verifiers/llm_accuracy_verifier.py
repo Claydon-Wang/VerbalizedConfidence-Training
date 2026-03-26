@@ -10,6 +10,7 @@ def build_llm_judge(config):
         model=config.judge_model_name_or_path,
         gpu_memory_utilization=config.judge_gpu_memory_utilization,
         tensor_parallel_size=config.tensor_parallel_size,
+        max_model_len=config.judge_max_model_len,
     )
     return tokenizer, llm
 

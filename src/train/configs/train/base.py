@@ -52,6 +52,7 @@ class TrainConfig:
     report_to: list[str] = field(default_factory=lambda: ["swanlab"])
     optimization_rewards: dict[str, float] = field(default_factory=dict)
     monitoring_rewards: list[str] = field(default_factory=list)
+    separation_margin: float = 0.1
     save_strategy: str = "steps"
     save_steps: int = 60
     save_total_limit: int = 1
@@ -116,6 +117,7 @@ class TrainConfig:
             "report_to": self.report_to,
             "optimization_rewards": self.optimization_rewards,
             "monitoring_rewards": self.monitoring_rewards,
+            "separation_margin": self.separation_margin,
             "save_strategy": self.save_strategy,
             "save_steps": self.save_steps,
             "save_total_limit": self.save_total_limit,

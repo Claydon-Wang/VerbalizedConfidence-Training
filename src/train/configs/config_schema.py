@@ -141,6 +141,10 @@ class GRPOConfig(trl.GRPOConfig):
         default_factory=list,
         metadata={"help": "Reward names to compute for monitoring only; these do not affect optimization."},
     )
+    separation_margin: float = field(
+        default=0.1,
+        metadata={"help": "Margin enforced between positive and negative confidence predictions in a rollout group."},
+    )
     system_prompt: Optional[str] = field(
         default=None, metadata={"help": "The optional system prompt to use for benchmarking."}
     )
