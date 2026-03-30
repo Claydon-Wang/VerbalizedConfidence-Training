@@ -73,6 +73,13 @@ class Math500(EvalDatasetConfig):
 
 
 @dataclass
+class AIME2024(EvalDatasetConfig):
+    dataset_name: str = "Maxwell-Jia/AIME_2024"
+    split: str = "train"
+    answer_verifier_name: str = "rule_verifier"
+
+
+@dataclass
 class MMLUPro(EvalDatasetConfig):
     dataset_name: str = "TIGER-Lab/MMLU-Pro"
     answer_verifier_name: str = "rule_verifier"

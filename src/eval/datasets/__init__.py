@@ -1,3 +1,4 @@
+from src.eval.datasets.aime2024 import AIME2024
 from src.eval.datasets.big_math_digits import BigMathDigits
 from src.eval.datasets.boolq import BoolQ
 from src.eval.datasets.commonsenseqa import CommonsenseQA
@@ -13,6 +14,7 @@ from src.eval.datasets.trivia import Trivia
 
 
 DATASET_REGISTRY = {
+    "AIME2024": AIME2024,
     "BigMathDigits": BigMathDigits,
     "BoolQ": BoolQ,
     "CommonsenseQA": CommonsenseQA,

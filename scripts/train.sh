@@ -33,6 +33,24 @@ export HF_DATASETS_CACHE=/mnt/sharedata/ssd_large/common/datasets/
 #   --method CoCA \
 #   --model Qwen25_1_5B_Instruct
 
+# BAR
+# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
+# accelerate launch --num_processes 8 \
+#   --config_file src/train/configs/launch/deepspeed.yaml \
+#   -m src.train.train_main \
+#   --dataset Hotpot \
+#   --method BAR \
+#   --model Qwen25_1_5B_Instruct
+
+# # COCA_difficulty
+# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
+# accelerate launch --num_processes 8 \
+#   --config_file src/train/configs/launch/deepspeed.yaml \
+#   -m src.train.train_main \
+#   --dataset Hotpot \
+#   --method COCA_difficulty \
+#   --model Qwen25_1_5B_Instruct
+
 # CoCA Bayesian
 # CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
 # accelerate launch --num_processes 8 \
@@ -61,8 +79,10 @@ export HF_DATASETS_CACHE=/mnt/sharedata/ssd_large/common/datasets/
 #   --dataset Hotpot \
 #   --method RLCRContrastive \
 #   --model Qwen25_1_5B_Instruct \
-#   --separation_weight 0.1 \
+#   --separation_weight 0.3 \
 #   --separation_margin 0.3
+
+
 ## MATH
 # RLVR
 # CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 \

@@ -39,6 +39,7 @@ class RLCRTrainer(BaseGRPOTrainer):
         optimization_rewards_per_func = gather(optimization_rewards_per_func)
         if self.monitoring_reward_names:
             monitoring_rewards_per_func = gather(monitoring_rewards_per_func)
+
         reward_weights = torch.tensor(
             [self.optimization_rewards[name] for name in self.optimization_reward_names], dtype=torch.float32, device=device
         )

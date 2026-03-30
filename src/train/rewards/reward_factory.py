@@ -4,6 +4,7 @@ from src.train.rewards.reward_functions import (
     accuracy_reward,
     brier_reward,
     confidence_one_or_zero,
+    difficulty_reward,
     format_reward,
     mean_confidence_reward,
     separation_reward,
@@ -17,6 +18,8 @@ def build_reward_function(reward_name, format_pattern):
         return partial(accuracy_reward, format_pattern=format_pattern)
     if reward_name == "brier":
         return partial(brier_reward, format_pattern=format_pattern)
+    if reward_name == "difficulty":
+        return partial(difficulty_reward, format_pattern=format_pattern)
     if reward_name == "mean_confidence":
         return mean_confidence_reward
     if reward_name == "confidence_one_or_zero":

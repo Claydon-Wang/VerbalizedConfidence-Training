@@ -155,7 +155,9 @@ class BaseInferencer:
         #     return "think_answer_analysis_confidence_detailed"
         # if fine_tuned_dataset == "math" and fine_tuned_algorithm in {"rlcr", "rlcr_sft"}:
         #     return "think_answer_analysis_confidence"
-        if fine_tuned_algorithm in {"rlcr", "rlcr_contrastive", "rlcr_sft", "coca", "coca_bayesian"}:
+        if fine_tuned_algorithm == "coca_difficulty":
+            return "think_answer_difficulty_confidence"
+        if fine_tuned_algorithm in {"rlcr", "rlcr_contrastive", "rlcr_sft", "coca", "coca_bayesian", "bar"}:
             return "think_answer_confidence"
         if fine_tuned_dataset == "math" and fine_tuned_algorithm == "rlvr":
             return "think_answer"

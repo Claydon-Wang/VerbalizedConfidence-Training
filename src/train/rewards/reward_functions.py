@@ -41,6 +41,17 @@ def extract_confidence_value(content) -> Optional[float]:
     return max(0.0, min(confidence, 1.0))
 
 
+def extract_difficulty_value(content) -> Optional[float]:
+    raw_difficulty = _extract_last_tag_value(content, "difficulty")
+    if raw_difficulty == "":
+        return None
+    try:
+        difficulty = float(raw_difficulty)
+    except Exception:
+        return None
+    return max(0.0, min(difficulty, 1.0))
+
+
 def format_reward(format_pattern,completions, **kwargs):
     """Reward function that checks if the completion has a specific format."""
     if format_pattern == "think_analysis_answer_confidence":
@@ -49,35 +60,31 @@ def format_reward(format_pattern,completions, **kwargs):
         pattern = r".*?</think>\s*<answer>.*?</answer>\s*\Z"
     elif format_pattern == "think_answer_confidence":
         pattern = r".*?</think>\s*<answer>.*?</answer>\s*<confidence>.*?</confidence>\s*\Z" 
+    elif format_pattern == "think_answer_difficulty_confidence":
+        pattern = r".*?</think>\s*<answer>.*?</answer>\s*<difficulty>.*?</difficulty>\s*<confidence>.*?</confidence>\s*\Z"
     elif format_pattern == "think_answer_analysis_confidence":
         pattern = r".*?</think>\s*<answer>.*?</answer>\s*<analysis>.*?</analysis>\s*<confidence>.*?</confidence>\s*\Z"
     else:
         raise ValueError(f"Invalid format pattern: {format_pattern}")
-    confidence_pattern = r"<confidence>(.*?)</confidence>"
 
     completion_contents = [completion[0]["content"] for completion in completions]
     matches = [re.match(pattern, content, re.DOTALL | re.MULTILINE) for content in completion_contents]
     matches = [1.0 if match else 0.0 for match in matches]
-    
-    #if it matches, check if the confidence is between 0 and 1
+
+    # If the format matches, check scalar tags are legal probabilities.
+    scalar_extractors = []
+    if "difficulty" in format_pattern:
+        scalar_extractors.append(extract_difficulty_value)
+    if "confidence" in format_pattern:
+        scalar_extractors.append(extract_confidence_value)
+
     for i,match in enumerate(matches):
         if match:
             content = completion_contents[i]
-            if "confidence" in format_pattern:
-                confidence_matches = re.findall(confidence_pattern, content, re.DOTALL | re.MULTILINE)  # Get all <confidence>...</confidence> occurrences
-                last_confidence = confidence_matches[-1] if confidence_matches else ""  # Get the last confidence, if exists
-                if last_confidence == "":
+            for extractor in scalar_extractors:
+                if extractor(content) is None:
                     matches[i] = 0.0
-                else:
-                    try:
-                        confidence = float(last_confidence)
-                        if confidence < 0 or confidence >1:
-                            matches[i] = 0.0
-                        else:
-                            matches[i] = 1
-
-                    except:
-                        matches[i] = 0.0
+                    break
     return matches
 
 def accuracy_reward(format_pattern,completions,answer,source=None,**kwargs):
@@ -119,6 +126,19 @@ def brier_reward(format_pattern,completions,answer,source=None, **kwargs):
             else:
                 reward = 1 - (cr - conf)**2
                 matches.append(reward)
+    return matches
+
+
+def difficulty_reward(format_pattern, completions, answer, source=None, **kwargs):
+    completion_contents = [completion[0]["content"] for completion in completions]
+    matches = []
+    format_rewards = format_reward(format_pattern, completions)
+    for content, fr in zip(completion_contents, format_rewards):
+        if fr == 0:
+            matches.append(0.0)
+        else:
+            difficulty = extract_difficulty_value(content)
+            matches.append(0.0 if difficulty is None else difficulty)
     return matches
 
 def mean_confidence_reward(completions,answer, **kwargs):

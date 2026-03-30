@@ -39,8 +39,12 @@ Policies capture which fine-tuned dataset and algorithm a checkpoint corresponds
 
 - `HotpotRLVR`
 - `HotpotRLCR`
+- `HotpotBAR`
+- `HotpotCOCADifficulty`
 - `MathRLVR`
 - `MathRLCR`
+- `MathBAR`
+- `MathCOCADifficulty`
 
 If you add new training algorithms and want named evaluation presets for them, update [`src/eval/configs/policies.py`](../src/eval/configs/policies.py) and the prompt-resolution logic in [`src/eval/inferencers/base_inferencer.py`](../src/eval/inferencers/base_inferencer.py).
 

@@ -35,6 +35,12 @@ class HotpotRLCRContrastive(BasePolicyConfig):
 
 
 @dataclass
+class HotpotBAR(BasePolicyConfig):
+    fine_tuned_dataset: str | None = "hotpot"
+    fine_tuned_algorithm: str | None = "bar"
+
+
+@dataclass
 class HotpotCoCA(BasePolicyConfig):
     fine_tuned_dataset: str | None = "hotpot"
     fine_tuned_algorithm: str | None = "coca"
@@ -44,6 +50,12 @@ class HotpotCoCA(BasePolicyConfig):
 class HotpotCoCABayesian(BasePolicyConfig):
     fine_tuned_dataset: str | None = "hotpot"
     fine_tuned_algorithm: str | None = "coca_bayesian"
+
+
+@dataclass
+class HotpotCOCADifficulty(BasePolicyConfig):
+    fine_tuned_dataset: str | None = "hotpot"
+    fine_tuned_algorithm: str | None = "coca_difficulty"
 
 
 @dataclass
@@ -65,6 +77,12 @@ class MathRLCRContrastive(BasePolicyConfig):
 
 
 @dataclass
+class MathBAR(BasePolicyConfig):
+    fine_tuned_dataset: str | None = "math"
+    fine_tuned_algorithm: str | None = "bar"
+
+
+@dataclass
 class MathCoCA(BasePolicyConfig):
     fine_tuned_dataset: str | None = "math"
     fine_tuned_algorithm: str | None = "coca"
@@ -74,6 +92,12 @@ class MathCoCA(BasePolicyConfig):
 class MathCoCABayesian(BasePolicyConfig):
     fine_tuned_dataset: str | None = "math"
     fine_tuned_algorithm: str | None = "coca_bayesian"
+
+
+@dataclass
+class MathCOCADifficulty(BasePolicyConfig):
+    fine_tuned_dataset: str | None = "math"
+    fine_tuned_algorithm: str | None = "coca_difficulty"
 
 
 @dataclass

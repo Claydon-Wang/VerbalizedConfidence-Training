@@ -145,6 +145,10 @@ class GRPOConfig(trl.GRPOConfig):
         default=0.1,
         metadata={"help": "Margin enforced between positive and negative confidence predictions in a rollout group."},
     )
+    bar_alpha: float = field(
+        default=0.5,
+        metadata={"help": "Alpha used in BAR coupled target: T_i = alpha * correctness + (1 - alpha) * group_success_rate."},
+    )
     system_prompt: Optional[str] = field(
         default=None, metadata={"help": "The optional system prompt to use for benchmarking."}
     )

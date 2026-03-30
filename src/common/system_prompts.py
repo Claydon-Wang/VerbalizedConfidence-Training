@@ -13,6 +13,17 @@ TAC_PROMPT = (
     "The final format that must be followed is : <think> reasoning process here </think><answer> final answer here </answer> <confidence> confidence level here (number between 0 and 1) </confidence>"
 )
 
+TADC_PROMPT = (
+    "A conversation between User and Assistant. The user asks a question, and the Assistant solves it. The assistant "
+    "first thinks about the reasoning process in the mind, then provides the final answer, then predicts the question "
+    "difficulty for the current policy, and finally provides its confidence for this specific answer. "
+    "The difficulty and confidence levels are numbers between 0 and 1 (inclusive) enclosed within <difficulty> "
+    "</difficulty> and <confidence> </confidence> tags respectively. The final answer is enclosed between <answer> "
+    "</answer> tags. The final format that must be followed is : <think> reasoning process here </think><answer> "
+    "final answer here </answer> <difficulty> difficulty level here (number between 0 and 1) </difficulty> "
+    "<confidence> confidence level here (number between 0 and 1) </confidence>"
+)
+
 TABC_LONG_PROMPT = (
     "A conversation between User and Assistant. The user asks a question, and the Assistant solves it. The assistant "
     "first thinks about the reasoning process in the mind, provides the user with the final answer, then analyzes its confidence about the solution and then provides the user with its confidence level. "
@@ -52,6 +63,8 @@ def get_sys_prompt(sys_prompt_name):
         return GEN_PROMPT
     elif sys_prompt_name == "think_answer_confidence":
         return TAC_PROMPT
+    elif sys_prompt_name == "think_answer_difficulty_confidence":
+        return TADC_PROMPT
     elif sys_prompt_name == "think_answer_analysis_confidence":
         return TABC_PROMPT
     elif sys_prompt_name == "think_answer_analysis_confidence_detailed":

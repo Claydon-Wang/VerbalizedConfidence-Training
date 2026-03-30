@@ -30,7 +30,7 @@ class EvalBaseConfig:
     tensor_parallel_size: int | None = None
     model_name_or_path: str | None = None
     num_generations: int = 1
-    self_consistency_num_generations: int = 10
+    self_consistency_num_generations: int = 32
     self_consistency_temperature: float = 0.7
     temperature: float = 0
     max_tokens: int = 4096

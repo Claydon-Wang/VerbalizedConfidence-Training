@@ -52,6 +52,41 @@ class MathRLCRContrastive(RLCRContrastive):
 
 
 @dataclass
+class BAR:
+    trainer_name: str = "bar"
+    format_pattern: str = "think_answer_confidence"
+    sys_prompt_name: str = "think_answer_confidence"
+    bar_alpha: float = 0.5
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5}
+    )
+    monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
+
+
+@dataclass
+class MathBAR(BAR):
+    pass
+
+
+@dataclass
+class COCA_difficulty:
+    trainer_name: str = "coca_difficulty"
+    format_pattern: str = "think_answer_difficulty_confidence"
+    sys_prompt_name: str = "think_answer_difficulty_confidence"
+    learning_rate: float = 1e-6
+    temperature: float = 1.0
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "difficulty": 0.5, "brier": 0.5}
+    )
+    monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
+
+
+@dataclass
+class MathCOCA_difficulty(COCA_difficulty):
+    pass
+
+
+@dataclass
 class CoCA:
     trainer_name: str = "coca"
     format_pattern: str = "think_answer_confidence"
