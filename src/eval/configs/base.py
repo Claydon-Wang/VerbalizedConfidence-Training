@@ -50,6 +50,11 @@ class EvalBaseConfig:
     fine_tuned_dataset: str | None = None
     fine_tuned_algorithm: str | None = None
     inferencer_name: str = "verbalized_confidence"
+    confidence_mode: str = "raw_p"
+    brpc_probe_hidden_size: int = 512
+    brpc_eps: float = 1e-6
+    brpc_posthoc_batch_size: int = 4
+    save_brpc_diagnostics: bool = False
 
     # verification
     correctness_fn: str | None = None

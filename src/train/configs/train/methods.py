@@ -130,5 +130,22 @@ class CoCABayesian:
 
 
 @dataclass
+class BRPC:
+    trainer_name: str = "brpc"
+    format_pattern: str = "think_answer_confidence"
+    sys_prompt_name: str = "think_answer_confidence"
+    learning_rate: float = 1e-6
+    temperature: float = 1.0
+    brpc_probe_loss_weight: float = 0.3
+    brpc_probe_hidden_size: int = 512
+    brpc_detach_hidden_states: bool = True
+    brpc_probe_loss_type: str = "bce"
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5}
+    )
+    monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
+
+
+@dataclass
 class RLCRSFT(MathRLCR):
     model_name_or_path: str = "mehuldamani/qwen-base-verifier-sft-v1"

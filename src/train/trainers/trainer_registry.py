@@ -1,4 +1,5 @@
 from src.train.trainers.bar_trainer import BARTrainer
+from src.train.trainers.brpc_trainer import BRPCTrainer
 from src.train.trainers.coca_bayesian_trainer import CoCABayesianTrainer
 from src.train.trainers.coca_difficulty_trainer import CoCADifficultyTrainer
 from src.train.trainers.coca_trainer import CoCATrainer
@@ -9,6 +10,7 @@ from src.train.trainers.rlvr_trainer import RLVRTrainer
 
 TRAINER_REGISTRY = {
     "bar": BARTrainer,
+    "brpc": BRPCTrainer,
     "coca_bayesian": CoCABayesianTrainer,
     "coca_difficulty": CoCADifficultyTrainer,
     "coca": CoCATrainer,

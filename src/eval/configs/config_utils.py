@@ -97,6 +97,7 @@ def update_config(
     policy_name: str,
     checkpoint_name: str | None = None,
     inferencer_name: str | None = None,
+    confidence_mode: str | None = None,
     tensor_parallel_size: int | None = None,
 ):
     run_name = policy_name
@@ -115,10 +116,12 @@ def update_config(
         config.model_name_or_path = checkpoint_name
     if inferencer_name is not None:
         config.inferencer_name = inferencer_name
+    if confidence_mode is not None:
+        config.confidence_mode = confidence_mode
     if config.inferencer_name == "self_consistency":
         config.num_generations = config.self_consistency_num_generations
         config.temperature = config.self_consistency_temperature
-    output_path = os.path.join(model_name, policy_name, config.inferencer_name)
+    output_path = os.path.join(model_name, policy_name, config.inferencer_name, config.confidence_mode)
     dataset_store_name = type(dataset_config).__name__
     config.name = run_name
     config.store_name = os.path.join(
@@ -141,6 +144,7 @@ def build_eval_config(
     policy_name: str | None = None,
     checkpoint_name: str | None = None,
     inferencer_name: str | None = None,
+    confidence_mode: str | None = None,
     tensor_parallel_size: int | None = None,
 ):
     if not model_name:
@@ -166,5 +170,6 @@ def build_eval_config(
         policy_name=policy_name,
         checkpoint_name=checkpoint_name,
         inferencer_name=inferencer_name,
+        confidence_mode=confidence_mode,
         tensor_parallel_size=tensor_parallel_size,
     )

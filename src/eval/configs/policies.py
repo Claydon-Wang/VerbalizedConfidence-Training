@@ -53,6 +53,13 @@ class HotpotCoCABayesian(BasePolicyConfig):
 
 
 @dataclass
+class HotpotBRPC(BasePolicyConfig):
+    fine_tuned_dataset: str | None = "hotpot"
+    fine_tuned_algorithm: str | None = "brpc"
+    inferencer_name: str | None = "brpc"
+
+
+@dataclass
 class HotpotCOCADifficulty(BasePolicyConfig):
     fine_tuned_dataset: str | None = "hotpot"
     fine_tuned_algorithm: str | None = "coca_difficulty"
@@ -92,6 +99,13 @@ class MathCoCA(BasePolicyConfig):
 class MathCoCABayesian(BasePolicyConfig):
     fine_tuned_dataset: str | None = "math"
     fine_tuned_algorithm: str | None = "coca_bayesian"
+
+
+@dataclass
+class MathBRPC(BasePolicyConfig):
+    fine_tuned_dataset: str | None = "math"
+    fine_tuned_algorithm: str | None = "brpc"
+    inferencer_name: str | None = "brpc"
 
 
 @dataclass

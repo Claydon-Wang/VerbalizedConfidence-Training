@@ -67,6 +67,20 @@ class BigMathDigits(EvalDatasetConfig):
 
 
 @dataclass
+class BigMath_Eval(EvalDatasetConfig):
+    dataset_name: str = "mehuldamani/big-math-digits"
+    split: str = "test"
+    answer_verifier_name: str = "rule_verifier"
+
+
+@dataclass
+class BigMath_Train(EvalDatasetConfig):
+    dataset_name: str = "mehuldamani/big-math-digits"
+    split: str = "train"
+    answer_verifier_name: str = "rule_verifier"
+
+
+@dataclass
 class Math500(EvalDatasetConfig):
     dataset_name: str = "HuggingFaceH4/MATH-500"
     answer_verifier_name: str = "rule_verifier"

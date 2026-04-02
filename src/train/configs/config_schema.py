@@ -309,6 +309,31 @@ class GRPOConfig(trl.GRPOConfig):
         metadata={"help": "Whether to validate that the prior jsonl question matches the training example question."},
     )
 
+    brpc_probe_loss_weight: float = field(
+        default=1.0,
+        metadata={"help": "Global weight on the BRPC probe loss added to the policy objective."},
+    )
+
+    brpc_probe_hidden_size: int = field(
+        default=512,
+        metadata={"help": "Hidden size of the MLP residual probe used by BRPC."},
+    )
+
+    brpc_eps: float = field(
+        default=1e-6,
+        metadata={"help": "Numerical epsilon used to clip parsed confidence before applying logit in BRPC."},
+    )
+
+    brpc_detach_hidden_states: bool = field(
+        default=True,
+        metadata={"help": "If True, the BRPC probe sees detached hidden states and does not backprop into the LLM."},
+    )
+
+    brpc_probe_loss_type: str = field(
+        default="bce",
+        metadata={"help": "Loss type for the BRPC residual probe. Supported: bce, mse."},
+    )
+
     def __post_init__(self):
         super().__post_init__()
 

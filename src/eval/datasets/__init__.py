@@ -1,5 +1,5 @@
 from src.eval.datasets.aime2024 import AIME2024
-from src.eval.datasets.big_math_digits import BigMathDigits
+from src.eval.datasets.big_math_digits import BigMathDigits, BigMath_Eval, BigMath_Train
 from src.eval.datasets.boolq import BoolQ
 from src.eval.datasets.commonsenseqa import CommonsenseQA
 from src.eval.datasets.gpqa import GPQA
@@ -23,6 +23,8 @@ DATASET_REGISTRY = {
     "HotpotRLCR_Eval": HotpotRLCR_Eval,
     "HotpotRLCR_Train": HotpotRLCR_Train,
     "HotpotVanilla": HotpotVanilla,
+    "BigMath_Eval": BigMath_Eval,
+    "BigMath_Train": BigMath_Train,
     "Math500": Math500,
     "MMLUPro": MMLUPro,
     "ScienceQA": ScienceQA,

@@ -9,12 +9,16 @@ from vllm import LLM, SamplingParams
 class BaseModel:
     def __init__(self, config):
         self.config = config
-        self.tokenizer = AutoTokenizer.from_pretrained(config.model_name_or_path, trust_remote_code=True)
+        self.model_path_for_generation = self._resolve_generation_model_path(config.model_name_or_path)
+        self.tokenizer = AutoTokenizer.from_pretrained(self.model_path_for_generation, trust_remote_code=True)
         self.llm = LLM(
-            model=config.model_name_or_path,
+            model=self.model_path_for_generation,
             gpu_memory_utilization=config.gpu_memory_utilization,
             tensor_parallel_size=config.tensor_parallel_size,
         )
+
+    def _resolve_generation_model_path(self, model_name_or_path: str) -> str:
+        return model_name_or_path
 
     def build_generation_inputs(self, prompts):
         prompt_ids = self.tokenizer.apply_chat_template(prompts, add_generation_prompt=True)
