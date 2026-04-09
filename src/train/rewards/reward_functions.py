@@ -1,6 +1,8 @@
 import re
 from math_verify import verify,parse
 import string
+import math
+import random
 from typing import Optional
 
 def normalize_answer(s):
@@ -133,6 +135,36 @@ def brier_reward(format_pattern,completions,answer,source=None, **kwargs):
     return matches
 
 
+def alpha_score_value(target, confidence, confidence_alpha=2.0):
+    if confidence_alpha <= 1.0:
+        raise ValueError(f"confidence_alpha must be > 1.0, got {confidence_alpha}")
+
+    y = max(0.0, min(float(target), 1.0))
+    q = max(0.0, min(float(confidence), 1.0))
+    alpha = float(confidence_alpha)
+    base_term = math.pow(q, alpha) + math.pow(1.0 - q, alpha)
+    positive_term = y * (alpha / (alpha - 1.0) * math.pow(q, alpha - 1.0))
+    negative_term = (1.0 - y) * (alpha / (alpha - 1.0) * math.pow(1.0 - q, alpha - 1.0))
+    return positive_term + negative_term - base_term
+
+
+def alpha_score_reward(format_pattern, completions, answer, source=None, confidence_alpha=2.0, **kwargs):
+    completion_contents = [completion[0]["content"] for completion in completions]
+    matches = []
+    correctness_rewards = accuracy_reward(format_pattern, completions, answer, source)
+    format_rewards = format_reward(format_pattern, completions)
+    for content, cr, fr in zip(completion_contents, correctness_rewards, format_rewards):
+        if fr == 0:
+            matches.append(0)
+        else:
+            conf = extract_confidence_value(content)
+            if conf is None:
+                matches.append(0)
+            else:
+                matches.append(alpha_score_value(cr, conf, confidence_alpha=confidence_alpha))
+    return matches
+
+
 def difficulty_reward(format_pattern, completions, answer, source=None, **kwargs):
     completion_contents = [completion[0]["content"] for completion in completions]
     matches = []
@@ -177,10 +209,24 @@ def confidence_one_or_zero(completions,answer, **kwargs):
     return matches
 
 
-def separation_reward(completions, answer, group_size=None, separation_margin=0.1, source=None, format_pattern=None, **kwargs):
+def _sigmoid(value):
+    return 1.0 / (1.0 + math.exp(-value))
+
+
+def separation_reward(
+    completions,
+    answer,
+    group_size=None,
+    contrastive_temperature=0.1,
+    source=None,
+    format_pattern=None,
+    **kwargs,
+):
     completion_contents = [completion[0]["content"] for completion in completions]
     if group_size is None or group_size <= 0:
         return [0.0 for _ in completion_contents]
+    if contrastive_temperature <= 0.0:
+        raise ValueError("contrastive_temperature must be > 0.")
 
     format_rewards = format_reward(format_pattern, completions) if format_pattern is not None else [1.0] * len(completion_contents)
     correctness_rewards = accuracy_reward(
@@ -199,20 +245,25 @@ def separation_reward(completions, answer, group_size=None, separation_margin=0.
         group_end = min(group_start + group_size, len(completion_contents))
         group_correctness = correctness_rewards[group_start:group_end]
         group_confidences = confidences[group_start:group_end]
+        pos_indices = [idx for idx, (label, conf) in enumerate(zip(group_correctness, group_confidences)) if label == 1.0 and conf is not None]
+        neg_indices = [idx for idx, (label, conf) in enumerate(zip(group_correctness, group_confidences)) if label == 0.0 and conf is not None]
 
-        pos_confidences = [conf for conf, label in zip(group_confidences, group_correctness) if label == 1.0 and conf is not None]
-        neg_confidences = [conf for conf, label in zip(group_confidences, group_correctness) if label == 0.0 and conf is not None]
-        pos_mean = sum(pos_confidences) / len(pos_confidences) if pos_confidences else None
-        neg_mean = sum(neg_confidences) / len(neg_confidences) if neg_confidences else None
+        if not pos_indices or not neg_indices:
+            continue
 
         for offset, (label, conf) in enumerate(zip(group_correctness, group_confidences)):
             if conf is None:
                 rewards[group_start + offset] = 0.0
                 continue
-            if label == 1.0 and neg_mean is not None:
-                rewards[group_start + offset] = -max(0.0, separation_margin - (conf - neg_mean))
-            elif label == 0.0 and pos_mean is not None:
-                rewards[group_start + offset] = -max(0.0, separation_margin - (pos_mean - conf))
+
+            if label == 1.0:
+                pair_idx = random.choice(neg_indices)
+                pair_conf = group_confidences[pair_idx]
+                rewards[group_start + offset] = _sigmoid((conf - pair_conf) / contrastive_temperature)
+            elif label == 0.0:
+                pair_idx = random.choice(pos_indices)
+                pair_conf = group_confidences[pair_idx]
+                rewards[group_start + offset] = _sigmoid((pair_conf - conf) / contrastive_temperature)
             else:
                 rewards[group_start + offset] = 0.0
 

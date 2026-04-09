@@ -13,8 +13,6 @@ class RLCRContrastiveTrainer(RLCRTrainer):
             raise ValueError("RLCRContrastiveTrainer requires 'separation' in optimization_rewards.")
 
     def _run_separation_reward(self, prompts, completions, completion_ids_list, inputs):
-        if self.args.separation_margin < 0.0:
-            raise ValueError("RLCRContrastiveTrainer requires separation_margin >= 0.")
         reward_func = self.reward_functions["separation"]
         keys = [key for key in inputs[0] if key not in ["prompt", "completion", "completion_ids"]]
         reward_kwargs = {key: [example[key] for example in inputs] for key in keys}
@@ -23,7 +21,7 @@ class RLCRContrastiveTrainer(RLCRTrainer):
             completions=completions,
             completion_ids=completion_ids_list,
             group_size=self.num_generations,
-            separation_margin=self.args.separation_margin,
+            contrastive_temperature=self.args.contrastive_temperature,
             format_pattern=self.args.format_pattern,
             **reward_kwargs,
         )

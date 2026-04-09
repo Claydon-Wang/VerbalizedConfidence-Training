@@ -35,6 +35,22 @@ class MathRLCR:
 
 
 @dataclass
+class RLCRalpha(RLCR):
+    confidence_alpha: float = 1.5
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "alpha_score": 0.5}
+    )
+
+
+@dataclass
+class MathRLCRalpha(MathRLCR):
+    confidence_alpha: float = 1.6
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "alpha_score": 0.5}
+    )
+
+
+@dataclass
 class RLCRContrastive:
     trainer_name: str = "rlcr_contrastive"
     format_pattern: str = "think_answer_confidence"
@@ -43,7 +59,7 @@ class RLCRContrastive:
         default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5, "separation": 0.1}
     )
     monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
-    separation_margin: float = 0.1
+    contrastive_temperature: float = 0.1
 
 
 @dataclass
@@ -110,6 +126,22 @@ class MathCoCA:
         default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5}
     )
     monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
+
+
+@dataclass
+class COCAalpha(CoCA):
+    confidence_alpha: float = 1.6
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "alpha_score": 0.2}
+    )
+
+
+@dataclass
+class MathCOCAalpha(MathCoCA):
+    confidence_alpha: float = 1.6
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "alpha_score": 1.2}
+    )
 
 
 @dataclass

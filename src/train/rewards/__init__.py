@@ -1,5 +1,6 @@
 from src.train.rewards.reward_functions import (
     accuracy_reward,
+    alpha_score_reward,
     brier_reward,
     confidence_one_or_zero,
     difficulty_reward,

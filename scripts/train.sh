@@ -71,15 +71,14 @@ export HF_DATASETS_CACHE=/mnt/sharedata/ssd_large/common/datasets/
 
 
 # RLCR Contrastive
-# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-# accelerate launch --num_processes 8 \
-#   --config_file src/train/configs/launch/deepspeed.yaml \
-#   -m src.train.train_main \
-#   --dataset Hotpot \
-#   --method RLCRContrastive \
-#   --model Qwen25_1_5B_Instruct \
-#   --separation_weight 0.1 \
-#   --separation_margin 0.2
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
+accelerate launch --num_processes 8 \
+  --config_file src/train/configs/launch/deepspeed.yaml \
+  -m src.train.train_main \
+  --dataset Hotpot \
+  --method RLCRContrastive \
+  --model Qwen25_1_5B_Instruct \
+
 
 # CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
 # accelerate launch --num_processes 8 \
@@ -92,32 +91,49 @@ export HF_DATASETS_CACHE=/mnt/sharedata/ssd_large/common/datasets/
 #   --separation_margin 0.3
 
 
+# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
+# accelerate launch --num_processes 8 \
+#   --config_file src/train/configs/launch/deepspeed.yaml \
+#   -m src.train.train_main \
+#   --dataset Hotpot \
+#   --method RLCRalpha \
+#   --model Qwen25_1_5B_Instruct
+
+
+# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
+# accelerate launch --num_processes 8 \
+#   --config_file src/train/configs/launch/deepspeed.yaml \
+#   -m src.train.train_main \
+#   --dataset Math \
+#   --method MathRLCRalpha \
+#   --model Qwen25_1_5B_Instruct
+
 ## MATH
 # RLVR
-CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-accelerate launch --num_processes 8 \
-  --config_file src/train/configs/launch/deepspeed.yaml \
-  -m src.train.train_main \
-  --dataset Math \
-  --method RLVR \
-  --model Qwen25_1_5B_Instruct
+# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
+# accelerate launch --num_processes 8 \
+#   --config_file src/train/configs/launch/deepspeed.yaml \
+#   -m src.train.train_main \
+#   --dataset Math \
+#   --method RLVR \
+#   --model Qwen25_1_5B_Instruct
 
 # RLCR
-CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-accelerate launch --num_processes 8 \
-  --config_file src/train/configs/launch/deepspeed.yaml \
-  -m src.train.train_main \
-  --dataset Math \
-  --method MathRLCR \
-  --model Qwen25_1_5B_Instruct
+# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
+# accelerate launch --num_processes 8 \
+#   --config_file src/train/configs/launch/deepspeed.yaml \
+#   -m src.train.train_main \
+#   --dataset Math \
+#   --method MathRLCR \
+#   --model Qwen25_1_5B_Instruct
 
 # CoCA
-CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-accelerate launch --num_processes 8 \
-  --config_file src/train/configs/launch/deepspeed.yaml \
-  -m src.train.train_main \
-  --dataset Math \
-  --method MathCoCA \
-  --model Qwen25_1_5B_Instruct
+# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
+# accelerate launch --num_processes 8 \
+#   --config_file src/train/configs/launch/deepspeed.yaml \
+#   -m src.train.train_main \
+#   --dataset Math \
+#   --method MathCoCA \
+#   --model Qwen25_1_5B_Instruct
 
 # Generation batch size = num_processes * per_device_train_batch_size * gradient_accumulation_steps

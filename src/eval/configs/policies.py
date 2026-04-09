@@ -29,6 +29,12 @@ class HotpotRLCR(BasePolicyConfig):
 
 
 @dataclass
+class HotpotRLCRalpha(BasePolicyConfig):
+    fine_tuned_dataset: str | None = "hotpot"
+    fine_tuned_algorithm: str | None = "rlcralpha"
+
+
+@dataclass
 class HotpotRLCRContrastive(BasePolicyConfig):
     fine_tuned_dataset: str | None = "hotpot"
     fine_tuned_algorithm: str | None = "rlcr_contrastive"
@@ -44,6 +50,12 @@ class HotpotBAR(BasePolicyConfig):
 class HotpotCoCA(BasePolicyConfig):
     fine_tuned_dataset: str | None = "hotpot"
     fine_tuned_algorithm: str | None = "coca"
+
+
+@dataclass
+class HotpotCOCAalpha(BasePolicyConfig):
+    fine_tuned_dataset: str | None = "hotpot"
+    fine_tuned_algorithm: str | None = "cocaalpha"
 
 
 @dataclass
@@ -78,6 +90,12 @@ class MathRLCR(BasePolicyConfig):
 
 
 @dataclass
+class MathRLCRalpha(BasePolicyConfig):
+    fine_tuned_dataset: str | None = "math"
+    fine_tuned_algorithm: str | None = "rlcralpha"
+
+
+@dataclass
 class MathRLCRContrastive(BasePolicyConfig):
     fine_tuned_dataset: str | None = "math"
     fine_tuned_algorithm: str | None = "rlcr_contrastive"
@@ -93,6 +111,12 @@ class MathBAR(BasePolicyConfig):
 class MathCoCA(BasePolicyConfig):
     fine_tuned_dataset: str | None = "math"
     fine_tuned_algorithm: str | None = "coca"
+
+
+@dataclass
+class MathCOCAalpha(BasePolicyConfig):
+    fine_tuned_dataset: str | None = "math"
+    fine_tuned_algorithm: str | None = "cocaalpha"
 
 
 @dataclass

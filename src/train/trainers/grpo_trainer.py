@@ -252,7 +252,11 @@ class BaseGRPOTrainer(Trainer, BaseTrainer):
             self.optimization_rewards, self.monitoring_rewards
         )
         self.reward_func_names = self.optimization_reward_names + self.monitoring_reward_names
-        reward_funcs = build_reward_functions(self.reward_func_names, args.format_pattern)
+        reward_funcs = build_reward_functions(
+            self.reward_func_names,
+            args.format_pattern,
+            confidence_alpha=args.confidence_alpha,
+        )
         for i, reward_func in enumerate(reward_funcs):
             if isinstance(reward_func, str):
                 reward_funcs[i] = AutoModelForSequenceClassification.from_pretrained(

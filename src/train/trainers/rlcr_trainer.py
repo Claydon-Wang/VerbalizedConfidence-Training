@@ -8,8 +8,8 @@ class RLCRTrainer(BaseGRPOTrainer):
 
     def validate_reward_specs(self, optimization_rewards, monitoring_rewards):
         super().validate_reward_specs(optimization_rewards, monitoring_rewards)
-        if "brier" not in optimization_rewards:
-            raise ValueError("RLCRTrainer requires 'brier' in optimization_rewards.")
+        if "brier" not in optimization_rewards and "alpha_score" not in optimization_rewards:
+            raise ValueError("RLCRTrainer requires 'brier' or 'alpha_score' in optimization_rewards.")
 
     def compute_rewards(self, generation_outputs, inputs):
         device = self.accelerator.device

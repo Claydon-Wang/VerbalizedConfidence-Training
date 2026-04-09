@@ -145,9 +145,17 @@ class GRPOConfig(trl.GRPOConfig):
         default=0.1,
         metadata={"help": "Margin enforced between positive and negative confidence predictions in a rollout group."},
     )
+    contrastive_temperature: float = field(
+        default=0.1,
+        metadata={"help": "Temperature tau for pairwise sigmoid contrastive confidence reward."},
+    )
     bar_alpha: float = field(
         default=0.5,
         metadata={"help": "Alpha used in BAR coupled target: T_i = alpha * correctness + (1 - alpha) * group_success_rate."},
+    )
+    confidence_alpha: float = field(
+        default=2.0,
+        metadata={"help": "Alpha used by alpha-based confidence scoring rewards; must be > 1."},
     )
     system_prompt: Optional[str] = field(
         default=None, metadata={"help": "The optional system prompt to use for benchmarking."}

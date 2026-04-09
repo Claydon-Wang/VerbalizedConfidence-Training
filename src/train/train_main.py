@@ -38,6 +38,7 @@ def load_config(argv):
     pre_parser.add_argument("--model")
     pre_parser.add_argument("--separation_weight", type=float)
     pre_parser.add_argument("--separation_margin", type=float)
+    pre_parser.add_argument("--contrastive_temperature", type=float)
     known_args, _ = pre_parser.parse_known_args(argv[1:])
 
     if not all([known_args.dataset, known_args.method, known_args.model]):
@@ -50,6 +51,8 @@ def load_config(argv):
         config_dict["optimization_rewards"] = optimization_rewards
     if known_args.separation_margin is not None:
         config_dict["separation_margin"] = known_args.separation_margin
+    if known_args.contrastive_temperature is not None:
+        config_dict["contrastive_temperature"] = known_args.contrastive_temperature
     return split_config_dict(config_dict)
 
 def main(script_args, training_args, model_args):

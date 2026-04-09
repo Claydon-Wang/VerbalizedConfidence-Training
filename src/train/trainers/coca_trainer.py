@@ -5,7 +5,7 @@ from accelerate.utils import gather, gather_object
 
 from math_verify import parse, verify
 
-from src.train.rewards.reward_functions import exact_match_score
+from src.train.rewards.reward_functions import alpha_score_value, exact_match_score
 from src.train.trainers.grpo_trainer import BaseGRPOTrainer
 from src.train.trainers.trainer_utils import nanmax, nanmin
 
@@ -16,10 +16,11 @@ class CoCATrainer(BaseGRPOTrainer):
     def validate_reward_specs(self, optimization_rewards, monitoring_rewards):
         super().validate_reward_specs(optimization_rewards, monitoring_rewards)
         optimization_reward_names = set(optimization_rewards)
-        required_rewards = {"format", "accuracy", "brier"}
-        if optimization_reward_names != required_rewards:
+        valid_reward_sets = ({"format", "accuracy", "brier"}, {"format", "accuracy", "alpha_score"})
+        if optimization_reward_names not in valid_reward_sets:
             raise ValueError(
-                "CoCATrainer requires optimization_rewards to be exactly {'format', 'accuracy', 'brier'}."
+                "CoCATrainer requires optimization_rewards to be exactly "
+                "{'format', 'accuracy', 'brier'} or {'format', 'accuracy', 'alpha_score'}."
             )
 
     def _normalize_group_rewards(self, rewards: torch.Tensor):
@@ -185,7 +186,22 @@ class CoCATrainer(BaseGRPOTrainer):
 
         group_success_rate = answer_rewards.view(-1, self.num_generations).mean(dim=1)
         group_success_rate = group_success_rate.repeat_interleave(self.num_generations, dim=0)
-        confidence_rewards = -torch.square(confidence_scores - group_success_rate)
+        confidence_reward_name = "alpha_score" if "alpha_score" in self.optimization_reward_names else "brier"
+        if confidence_reward_name == "alpha_score":
+            confidence_rewards = torch.tensor(
+                [
+                    alpha_score_value(
+                        target=group_label.item(),
+                        confidence=confidence.item(),
+                        confidence_alpha=self.args.confidence_alpha,
+                    )
+                    for group_label, confidence in zip(group_success_rate, confidence_scores)
+                ],
+                dtype=torch.float32,
+                device=device,
+            )
+        else:
+            confidence_rewards = -torch.square(confidence_scores - group_success_rate)
 
         optimization_rewards_per_func = torch.stack([format_rewards, answer_rewards, confidence_rewards], dim=1)
 
@@ -194,7 +210,7 @@ class CoCATrainer(BaseGRPOTrainer):
             answer_reward_weights["format"] * format_rewards
             + answer_reward_weights["accuracy"] * answer_rewards
         )
-        confidence_objective_rewards = answer_reward_weights["brier"] * confidence_rewards
+        confidence_objective_rewards = answer_reward_weights[confidence_reward_name] * confidence_rewards
 
         monitoring_rewards_per_func = torch.zeros(len(prompts), len(self.monitoring_reward_names), device=device)
         for i, reward_name in enumerate(self.monitoring_reward_names):
