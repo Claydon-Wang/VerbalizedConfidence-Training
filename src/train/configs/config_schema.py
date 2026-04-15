@@ -157,6 +157,10 @@ class GRPOConfig(trl.GRPOConfig):
         default=2.0,
         metadata={"help": "Alpha used by alpha-based confidence scoring rewards; must be > 1."},
     )
+    dab_lambda: float = field(
+        default=1.0,
+        metadata={"help": "Lambda used by RLCR_split_DAB for the difficulty-alignment term in the confidence reward."},
+    )
     system_prompt: Optional[str] = field(
         default=None, metadata={"help": "The optional system prompt to use for benchmarking."}
     )

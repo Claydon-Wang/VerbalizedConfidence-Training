@@ -35,6 +35,187 @@ class MathRLCR:
 
 
 @dataclass
+class RLCR_split:
+    trainer_name: str = "rlcr_split"
+    format_pattern: str = "think_answer_confidence"
+    sys_prompt_name: str = "think_answer_confidence"
+    learning_rate: float = 1e-6
+    temperature: float = 1.0
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5}
+    )
+    monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
+
+
+@dataclass
+class MathRLCR_split(RLCR_split):
+    pass
+
+
+@dataclass
+class RLCR_split_Batch:
+    trainer_name: str = "rlcr_split_batch"
+    format_pattern: str = "think_answer_confidence"
+    sys_prompt_name: str = "think_answer_confidence"
+    learning_rate: float = 1e-6
+    temperature: float = 1.0
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5}
+    )
+    monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
+
+
+@dataclass
+class MathRLCR_split_Batch(RLCR_split_Batch):
+    pass
+
+
+@dataclass
+class RLCR_split_Global:
+    trainer_name: str = "rlcr_split_global"
+    format_pattern: str = "think_answer_confidence"
+    sys_prompt_name: str = "think_answer_confidence"
+    learning_rate: float = 1e-6
+    temperature: float = 1.0
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5}
+    )
+    monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
+
+
+@dataclass
+class MathRLCR_split_Global(RLCR_split_Global):
+    pass
+
+
+@dataclass
+class RLCR_split_Global_Debias:
+    trainer_name: str = "rlcr_split_global_debias"
+    format_pattern: str = "think_answer_confidence"
+    sys_prompt_name: str = "think_answer_confidence"
+    learning_rate: float = 1e-6
+    temperature: float = 1.0
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5}
+    )
+    monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
+
+
+@dataclass
+class MathRLCR_split_Global_Debias(RLCR_split_Global_Debias):
+    pass
+
+
+@dataclass
+class RLCR_split_Global_Debias_NoStd:
+    trainer_name: str = "rlcr_split_global_debias_nostd"
+    format_pattern: str = "think_answer_confidence"
+    sys_prompt_name: str = "think_answer_confidence"
+    learning_rate: float = 1e-6
+    temperature: float = 1.0
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5}
+    )
+    monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
+
+
+@dataclass
+class MathRLCR_split_Global_Debias_NoStd(RLCR_split_Global_Debias_NoStd):
+    pass
+
+
+@dataclass
+class RLCR_split_Global_RW:
+    trainer_name: str = "rlcr_split_global_rw"
+    format_pattern: str = "think_answer_confidence"
+    sys_prompt_name: str = "think_answer_confidence"
+    learning_rate: float = 1e-6
+    temperature: float = 1.0
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5}
+    )
+    monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
+
+
+@dataclass
+class MathRLCR_split_Global_RW(RLCR_split_Global_RW):
+    pass
+
+
+@dataclass
+class RLCR_split_NoStd:
+    trainer_name: str = "rlcr_split_nostd"
+    format_pattern: str = "think_answer_confidence"
+    sys_prompt_name: str = "think_answer_confidence"
+    learning_rate: float = 1e-6
+    temperature: float = 1.0
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5}
+    )
+    monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
+
+
+@dataclass
+class MathRLCR_split_NoStd(RLCR_split_NoStd):
+    pass
+
+
+@dataclass
+class RLCR_split_DAB:
+    trainer_name: str = "rlcr_split_dab"
+    format_pattern: str = "think_answer_confidence"
+    sys_prompt_name: str = "think_answer_confidence"
+    learning_rate: float = 1e-6
+    temperature: float = 1.0
+    dab_lambda: float = 1.0
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5}
+    )
+    monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
+
+
+@dataclass
+class MathRLCR_split_DAB(RLCR_split_DAB):
+    pass
+
+
+@dataclass
+class RLCR_split_Cal:
+    trainer_name: str = "rlcr_split_cal"
+    format_pattern: str = "think_answer_confidence"
+    sys_prompt_name: str = "think_answer_confidence"
+    learning_rate: float = 1e-6
+    temperature: float = 1.0
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5}
+    )
+    monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
+
+
+@dataclass
+class MathRLCR_split_Cal(RLCR_split_Cal):
+    pass
+
+
+@dataclass
+class RLCR_split_DA:
+    trainer_name: str = "rlcr_split_da"
+    format_pattern: str = "think_answer_difficulty_confidence"
+    sys_prompt_name: str = "think_answer_difficulty_confidence"
+    learning_rate: float = 1e-6
+    temperature: float = 1.0
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "difficulty": 0.5, "brier": 0.5}
+    )
+    monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
+
+
+@dataclass
+class MathRLCR_split_DA(RLCR_split_DA):
+    pass
+
+
+@dataclass
 class RLCRalpha(RLCR):
     confidence_alpha: float = 1.5
     optimization_rewards: dict[str, float] = field(
@@ -100,6 +281,16 @@ class COCA_difficulty:
 @dataclass
 class MathCOCA_difficulty(COCA_difficulty):
     pass
+
+
+@dataclass
+class COCA_DA(COCA_difficulty):
+    trainer_name: str = "coca_da"
+
+
+@dataclass
+class MathCOCA_DA(MathCOCA_difficulty):
+    trainer_name: str = "coca_da"
 
 
 @dataclass

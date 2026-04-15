@@ -73,6 +73,16 @@ class CoCADifficultyTrainer(CoCATrainer):
         answer_mask = (completion_mask - difficulty_mask - confidence_mask).clamp(min=0)
         return answer_mask.int(), difficulty_mask.int(), confidence_mask.int()
 
+    def _compute_mad_group_advantages(self, rewards: torch.Tensor):
+        grouped_rewards = rewards.view(-1, self.num_generations)
+        mean_grouped_rewards = grouped_rewards.mean(dim=1)
+        mad_grouped_rewards = (grouped_rewards - mean_grouped_rewards.unsqueeze(1)).abs().mean(dim=1)
+
+        mean_grouped_rewards = mean_grouped_rewards.repeat_interleave(self.num_generations, dim=0)
+        mad_grouped_rewards = mad_grouped_rewards.repeat_interleave(self.num_generations, dim=0)
+        advantages = (rewards - mean_grouped_rewards) / (mad_grouped_rewards + 1e-4)
+        return advantages, mean_grouped_rewards, mad_grouped_rewards
+
     def compute_rewards(self, generation_outputs, inputs):
         device = self.accelerator.device
         prompts = generation_outputs["prompts"]
@@ -166,7 +176,7 @@ class CoCADifficultyTrainer(CoCATrainer):
         difficulty_advantages, difficulty_group_means, difficulty_group_stds = self._normalize_group_rewards(
             reward_outputs["difficulty_rewards"]
         )
-        confidence_advantages, confidence_group_means, confidence_group_stds = self._normalize_group_rewards(
+        confidence_advantages, confidence_group_means, confidence_group_mads = self._compute_mad_group_advantages(
             reward_outputs["confidence_rewards"]
         )
 
@@ -223,7 +233,7 @@ class CoCADifficultyTrainer(CoCATrainer):
             (
                 answer_group_stds.mean().item()
                 + difficulty_group_stds.mean().item()
-                + confidence_group_stds.mean().item()
+                + confidence_group_mads.mean().item()
             )
             / 3.0
         )
@@ -381,3 +391,7 @@ class CoCADifficultyTrainer(CoCATrainer):
         self._metrics[mode]["clip_ratio/region_mean"].append(gathered_clip_ratio.nanmean().item())
 
         return loss
+
+
+class CoCADATrainer(CoCADifficultyTrainer):
+    trainer_name = "coca_da"
