@@ -148,32 +148,10 @@ class BaseInferencer:
 
         fine_tuned_dataset = getattr(self.config, "fine_tuned_dataset", None)
         fine_tuned_algorithm = getattr(self.config, "fine_tuned_algorithm", None)
-        if fine_tuned_dataset == "hotpot" and fine_tuned_algorithm == "rlvr":
+        if fine_tuned_algorithm == "rlvr":
             return "think_answer"
-        # Original RLCR prompt routing kept for reference.
-        # if fine_tuned_dataset == "hotpot" and fine_tuned_algorithm == "rlcr":
-        #     return "think_answer_analysis_confidence_detailed"
-        # if fine_tuned_dataset == "math" and fine_tuned_algorithm in {"rlcr", "rlcr_sft"}:
-        #     return "think_answer_analysis_confidence"
-        if fine_tuned_algorithm in {"coca_difficulty", "coca_da", "rlcr_split_da"}:
-            return "think_answer_difficulty_confidence"
-        if fine_tuned_algorithm in {
-            "rlcr",
-            "rlcr_split_dab",
-            "rlcr_split_cal",
-            "rlcr_split",
-            "rlcralpha",
-            "rlcr_contrastive",
-            "rlcr_sft",
-            "coca",
-            "cocaalpha",
-            "coca_bayesian",
-            "bar",
-            "brpc",
-        }:
+        if fine_tuned_algorithm in {"rlcr", "rlcr_split", "coca", "dcpo"}:
             return "think_answer_confidence"
-        if fine_tuned_dataset == "math" and fine_tuned_algorithm == "rlvr":
-            return "think_answer"
 
         if inferencer_name == "verbalized_confidence":
             return "think_answer_confidence"

@@ -244,17 +244,17 @@ class CoCATrainer(BaseGRPOTrainer):
             generation_outputs["completion_ids_list"],
             inputs,
         )
-        format_rewards_local = torch.tensor(format_rewards_local, dtype=torch.float32, device=device)
+        format_rewards_local = torch.as_tensor(format_rewards_local, dtype=torch.float32, device=device)
         format_rewards = gather(format_rewards_local)
 
         answers = [example["answer"] for example in inputs]
         sources = [example["source"] for example in inputs] if "source" in inputs[0] else None
         answer_rewards_local = self._compute_answer_rewards(completions, answers, sources)
-        answer_rewards_local = torch.tensor(answer_rewards_local, dtype=torch.float32, device=device)
+        answer_rewards_local = torch.as_tensor(answer_rewards_local, dtype=torch.float32, device=device)
         answer_rewards = gather(answer_rewards_local)
 
         confidence_scores_local = self._parse_confidence_scores(completions)
-        confidence_scores_local = torch.tensor(confidence_scores_local, dtype=torch.float32, device=device)
+        confidence_scores_local = torch.as_tensor(confidence_scores_local, dtype=torch.float32, device=device)
         confidence_scores = gather(confidence_scores_local)
 
         group_success_rate = answer_rewards.view(-1, self.num_generations).mean(dim=1)

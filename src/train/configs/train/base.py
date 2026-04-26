@@ -38,7 +38,7 @@ class TrainConfig:
     log_level: str = "info"
     logging_steps: int = 5
     logging_strategy: str = "steps"
-    log_batch_confidences: bool = True
+    log_batch_confidences: bool = False
     lr_scheduler_type: str = "constant_with_warmup"
     mask_truncated_completions: bool = False
     max_prompt_length: int = 3072
@@ -54,6 +54,7 @@ class TrainConfig:
     report_to: list[str] = field(default_factory=lambda: ["swanlab"])
     optimization_rewards: dict[str, float] = field(default_factory=dict)
     monitoring_rewards: list[str] = field(default_factory=list)
+    dcpo_lambda: float = 0.5
     random_target_gap: float = 0.1
     separation_margin: float = 0.1
     save_strategy: str = "steps"
@@ -122,6 +123,7 @@ class TrainConfig:
             "report_to": self.report_to,
             "optimization_rewards": self.optimization_rewards,
             "monitoring_rewards": self.monitoring_rewards,
+            "dcpo_lambda": self.dcpo_lambda,
             "random_target_gap": self.random_target_gap,
             "separation_margin": self.separation_margin,
             "save_strategy": self.save_strategy,

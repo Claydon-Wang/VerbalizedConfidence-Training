@@ -69,12 +69,21 @@ def validate_checkpoint_matches_model(model_config, checkpoint_name: str):
         )
 
 
-def load_config(dataset_name: str, model_name: str, policy_name: str):
+def load_config(dataset_name: str, model_name: str, algorithm_name: str, fine_tuned_dataset_name: str | None):
     base_config = EvalBaseConfig()
     dataset_config = load_config_class("datasets", dataset_name)
     model_config = load_config_class("models", model_name)
-    policy_config = load_config_class("policies", policy_name)
-    return base_config, dataset_config, model_config, policy_config
+    algorithm_config = load_config_class("policies", algorithm_name)
+    fine_tuned_dataset_config = (
+        load_config_class("policies", fine_tuned_dataset_name) if fine_tuned_dataset_name is not None else None
+    )
+    return base_config, dataset_config, model_config, fine_tuned_dataset_config, algorithm_config
+
+
+def build_policy_run_name(algorithm_name: str, fine_tuned_dataset: str | None) -> str:
+    if algorithm_name == "Baseline" or not fine_tuned_dataset:
+        return algorithm_name
+    return f"{fine_tuned_dataset}_{algorithm_name}"
 
 
 def apply_config_overrides(target_config: EvalBaseConfig, source_config, skip_fields: set[str] | None = None):
@@ -92,25 +101,28 @@ def update_config(
     base_config: EvalBaseConfig,
     dataset_config,
     model_config,
-    policy_config,
+    fine_tuned_dataset_config,
+    algorithm_config,
     model_name: str,
-    policy_name: str,
+    algorithm_name: str,
     checkpoint_name: str | None = None,
     inferencer_name: str | None = None,
     confidence_mode: str | None = None,
     tensor_parallel_size: int | None = None,
 ):
-    run_name = policy_name
     config = EvalBaseConfig()
     apply_config_overrides(config, base_config)
     apply_config_overrides(config, dataset_config)
     apply_config_overrides(config, model_config, skip_fields={"fresh"})
-    apply_config_overrides(config, policy_config)
+    if fine_tuned_dataset_config is not None:
+        apply_config_overrides(config, fine_tuned_dataset_config)
+    apply_config_overrides(config, algorithm_config)
 
     config.dataset_config_name = type(dataset_config).__name__
     config.dataset_cls = type(dataset_config).__name__
     config.model_config_name = model_name
-    config.policy_name = policy_name
+    run_name = build_policy_run_name(algorithm_name, config.fine_tuned_dataset)
+    config.policy_name = run_name
     config.checkpoint_name = checkpoint_name
     if checkpoint_name is not None:
         config.model_name_or_path = checkpoint_name
@@ -121,7 +133,7 @@ def update_config(
     if config.inferencer_name == "self_consistency":
         config.num_generations = config.self_consistency_num_generations
         config.temperature = config.self_consistency_temperature
-    output_path = os.path.join(model_name, policy_name, config.inferencer_name, config.confidence_mode)
+    output_path = os.path.join(model_name, run_name, config.inferencer_name, config.confidence_mode)
     dataset_store_name = type(dataset_config).__name__
     config.name = run_name
     config.store_name = os.path.join(
@@ -141,7 +153,8 @@ def update_config(
 def build_eval_config(
     dataset_name: str,
     model_name: str,
-    policy_name: str | None = None,
+    fine_tuned_algorithm_name: str | None = None,
+    fine_tuned_dataset_name: str | None = None,
     checkpoint_name: str | None = None,
     inferencer_name: str | None = None,
     confidence_mode: str | None = None,
@@ -149,15 +162,17 @@ def build_eval_config(
 ):
     if not model_name:
         raise ValueError("Evaluation requires --model <Class>.")
-    if policy_name is None:
-        policy_name = "Baseline"
-    if policy_name != "Baseline" and checkpoint_name is None:
+    if fine_tuned_algorithm_name is None:
+        fine_tuned_algorithm_name = "Baseline"
+    if fine_tuned_algorithm_name != "Baseline" and checkpoint_name is None:
         raise ValueError("Non-baseline evaluation requires --checkpoint <path>.")
+    if fine_tuned_algorithm_name != "Baseline" and fine_tuned_dataset_name is None:
+        raise ValueError("Non-baseline evaluation requires --fine_tuned_dataset <Hotpot|BigMath|GSM8K>.")
     if tensor_parallel_size is not None and tensor_parallel_size < 1:
         raise ValueError("--tensor_parallel_size must be >= 1.")
 
-    base_config, dataset_config, model_config, policy_config = load_config(
-        dataset_name, model_name, policy_name
+    base_config, dataset_config, model_config, fine_tuned_dataset_config, algorithm_config = load_config(
+        dataset_name, model_name, fine_tuned_algorithm_name, fine_tuned_dataset_name
     )
     if checkpoint_name is not None:
         validate_checkpoint_matches_model(model_config, checkpoint_name)
@@ -165,9 +180,10 @@ def build_eval_config(
         base_config,
         dataset_config,
         model_config,
-        policy_config,
+        fine_tuned_dataset_config,
+        algorithm_config,
         model_name=model_name,
-        policy_name=policy_name,
+        algorithm_name=fine_tuned_algorithm_name,
         checkpoint_name=checkpoint_name,
         inferencer_name=inferencer_name,
         confidence_mode=confidence_mode,

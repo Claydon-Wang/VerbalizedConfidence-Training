@@ -7,7 +7,7 @@ from src.common.dataset_processing import process_dataset
 from src.train.datasets.base_dataset import BaseDataset
 
 
-FORMATTED_CACHE_DIR = "temp/RLCR/data/gsm8k_train_formatted_v2"
+FORMATTED_CACHE_DIR = "temp/data/gsm8k_train_formatted"
 
 
 class GSM8K(BaseDataset):

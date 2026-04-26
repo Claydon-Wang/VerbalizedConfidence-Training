@@ -6,34 +6,32 @@ GPU=7
 INFERENCER=verbalized_confidence
 
 DATASETS=(
+  # "HotpotRLCR_Train"
+  # "BigMath_Train"
   "HotpotRLCR_Eval"
   "HotpotVanilla"
+  "BigMath_Eval"
   "SimpleQA"
-  "ScienceQA"
-  "SQuAD"
-  "BoolQ"
   "TriviaQA"
   "CommonsenseQA"
   "GPQA"
   "MMLUPro"
   "GSM8K"
   "Math500"
+  "ScienceQA"
+  "SQuAD"
+  "BoolQ"
+  "AIME2024"
 )
 
 # different methods
 for dataset in "${DATASETS[@]}"; do
   CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B_Instruct --inferencer "$INFERENCER"
-  CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B_Instruct --inferencer "$INFERENCER" --policy HotpotRLVR --checkpoint logs/train/hotpot/rlvr/qwen25_1_5b_instruct/2026-0322-0454
-  CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B_Instruct --inferencer "$INFERENCER" --policy HotpotRLCR --checkpoint logs/train/hotpot/rlcr/qwen25_1_5b_instruct/2026-0322-0450
-  # CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B_Instruct --inferencer "$INFERENCER" --policy HotpotRLCRSplitBatch --checkpoint logs/train/hotpot/rlcr_split_batch/qwen25_1_5b_instruct/<timestamp_or_checkpoint>
-  # CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B_Instruct --inferencer "$INFERENCER" --policy HotpotRLCRSplitGlobal --checkpoint logs/train/hotpot/rlcr_split_global/qwen25_1_5b_instruct/<timestamp_or_checkpoint>
-  # CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B_Instruct --inferencer "$INFERENCER" --policy HotpotRLCRSplitGlobalRW --checkpoint logs/train/hotpot/rlcr_split_global_rw/qwen25_1_5b_instruct/<timestamp_or_checkpoint>
-  CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B_Instruct --inferencer "$INFERENCER" --policy HotpotRLCRContrastive --checkpoint logs/train/hotpot/rlcrcontrastive/qwen25_1_5b_instruct/2026-0325-0712/checkpoint-156
-  CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B_Instruct --inferencer "$INFERENCER" --policy HotpotCoCA --checkpoint logs/train/hotpot/coca/qwen25_1_5b_instruct/2026-0322-1101
-  CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B_Instruct --inferencer "$INFERENCER" --policy HotpotCoCABayesian --checkpoint logs/train/hotpot/cocabayesian/qwen25_1_5b_instruct/2026-0324-0724
+  CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B_Instruct --inferencer "$INFERENCER" --fine_tuned_algorithm RLVR --fine_tuned_dataset Hotpot --checkpoint logs/train/hotpot/rlvr/qwen25_1_5b_instruct/2026-0322-0454
+  CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B_Instruct --inferencer "$INFERENCER" --fine_tuned_algorithm RLCR --fine_tuned_dataset Hotpot --checkpoint logs/train/hotpot/rlcr/qwen25_1_5b_instruct/2026-0322-0450
+  CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B_Instruct --inferencer "$INFERENCER" --fine_tuned_algorithm CoCA --fine_tuned_dataset Hotpot --checkpoint logs/train/hotpot/coca/qwen25_1_5b_instruct/2026-0322-1101
 
-  # CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B_Instruct --inferencer "$INFERENCER" --policy MathRLVR --checkpoint /path/to/math-rlvr-checkpoint
-  # CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B_Instruct --inferencer "$INFERENCER" --policy MathRLCR --checkpoint /path/to/math-rlcr-checkpoint
-  # CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B_Instruct --inferencer "$INFERENCER" --policy MathRLCRContrastive --checkpoint /path/to/math-rlcr-contrastive-checkpoint
-  # CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B_Instruct --inferencer "$INFERENCER" --policy MathCoCA --checkpoint /path/to/math-coca-checkpoint
+  # CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B_Instruct --inferencer "$INFERENCER" --fine_tuned_algorithm RLVR --fine_tuned_dataset BigMath --checkpoint /path/to/big-math-rlvr-checkpoint
+  # CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B_Instruct --inferencer "$INFERENCER" --fine_tuned_algorithm RLCR --fine_tuned_dataset BigMath --checkpoint /path/to/big-math-rlcr-checkpoint
+  # CUDA_VISIBLE_DEVICES=$GPU python -m src.eval.eval_main --dataset "$dataset" --model Qwen25_1_5B_Instruct --inferencer "$INFERENCER" --fine_tuned_algorithm CoCA --fine_tuned_dataset BigMath --checkpoint /path/to/big-math-coca-checkpoint
 done

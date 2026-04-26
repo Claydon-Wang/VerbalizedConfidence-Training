@@ -1,15 +1,12 @@
 from src.train.datasets.gsm8k import GSM8K
 from src.train.datasets.hotpot import Hotpot
-from src.train.datasets.math import Math
+from src.train.datasets.big_math import BigMath
 
 
 DATASET_REGISTRY = {
     "GSM8K": GSM8K,
     "Hotpot": Hotpot,
-    "HotpotQAEasy": Hotpot,
-    "HotpotQAMedium": Hotpot,
-    "HotpotQAHard": Hotpot,
-    "Math": Math,
+    "BigMath": BigMath,
 }
 
 

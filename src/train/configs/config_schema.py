@@ -171,6 +171,12 @@ class GRPOConfig(trl.GRPOConfig):
         default=0.1,
         metadata={"help": "Half-width of the local interval around empirical group accuracy used by RLCR_split_random_target."},
     )
+    dcpo_lambda: float = field(
+        default=0.5,
+        metadata={
+            "help": "Interpolation factor used by DCPO: target = lambda * group_success_rate + (1-lambda) * rollout_correctness."
+        },
+    )
     system_prompt: Optional[str] = field(
         default=None, metadata={"help": "The optional system prompt to use for benchmarking."}
     )

@@ -33,13 +33,22 @@ export HF_DATASETS_CACHE=/mnt/sharedata/ssd_large/common/datasets/
 #   --method RLCR_split \
 #   --model Qwen25_1_5B_Instruct
 
+# CoCA
+# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
+# accelerate launch --num_processes 8 \
+#   --config_file src/train/configs/launch/deepspeed.yaml \
+#   -m src.train.train_main \
+#   --dataset Hotpot \
+#   --method COCA \
+#   --model Qwen25_1_5B_Instruct
+
 ## MATH
 # RLVR
 # CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
 # accelerate launch --num_processes 8 \
 #   --config_file src/train/configs/launch/deepspeed.yaml \
 #   -m src.train.train_main \
-#   --dataset Math \
+#   --dataset BigMath \
 #   --method RLVR \
 #   --model Qwen25_1_5B_Instruct
 
@@ -48,8 +57,8 @@ export HF_DATASETS_CACHE=/mnt/sharedata/ssd_large/common/datasets/
 # accelerate launch --num_processes 8 \
 #   --config_file src/train/configs/launch/deepspeed.yaml \
 #   -m src.train.train_main \
-#   --dataset Math \
-#   --method MathRLCR \
+#   --dataset BigMath \
+#   --method RLCR \
 #   --model Qwen25_1_5B_Instruct
 
 # CoCA
@@ -57,19 +66,19 @@ export HF_DATASETS_CACHE=/mnt/sharedata/ssd_large/common/datasets/
 # accelerate launch --num_processes 8 \
 #   --config_file src/train/configs/launch/deepspeed.yaml \
 #   -m src.train.train_main \
-#   --dataset Math \
-#   --method MathCoCA \
+#   --dataset BigMath \
+#   --method CoCA \
 #   --model Qwen25_1_5B_Instruct
 
 ## GSM8K
 # RLCR_split
-CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-accelerate launch --num_processes 8 \
-  --config_file src/train/configs/launch/deepspeed.yaml \
-  -m src.train.train_main \
-  --dataset GSM8K \
-  --method MathRLCR_split \
-  --model Qwen25_1_5B_Instruct
+# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
+# accelerate launch --num_processes 8 \
+#   --config_file src/train/configs/launch/deepspeed.yaml \
+#   -m src.train.train_main \
+#   --dataset GSM8K \
+#   --method RLCR_split \
+#   --model Qwen25_1_5B_Instruct
 
 # CoCA
 # CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
@@ -77,7 +86,7 @@ accelerate launch --num_processes 8 \
 #   --config_file src/train/configs/launch/deepspeed.yaml \
 #   -m src.train.train_main \
 #   --dataset GSM8K \
-#   --method MathCoCA \
+#   --method CoCA \
 #   --model Qwen25_1_5B_Instruct
 
 # Generation batch size = num_processes * per_device_train_batch_size * gradient_accumulation_steps
