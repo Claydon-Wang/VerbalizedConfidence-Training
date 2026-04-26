@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
 import textwrap
 import warnings
@@ -72,6 +73,7 @@ from src.train.trainers.trainer_utils import (
 )
 from src.train.trainers.base_trainer import BaseTrainer
 from src.train.rewards.reward_factory import build_reward_functions
+from src.train.rewards.reward_functions import extract_confidence_value
 import gc
 
 if is_peft_available():
@@ -359,6 +361,7 @@ class BaseGRPOTrainer(Trainer, BaseTrainer):
             "completion": deque(maxlen=50000),
             "rewards": defaultdict(lambda: deque(maxlen=50000)),
         }
+        self._confidence_batch_counters = {"train": 0, "eval": 0}
 
         set_seed(args.seed, device_specific=True)
 
@@ -707,6 +710,101 @@ class BaseGRPOTrainer(Trainer, BaseTrainer):
     def compute_rewards(self, generation_outputs: dict[str, Any], inputs: dict[str, Union[torch.Tensor, Any]]):
         raise NotImplementedError
 
+    def _record_batch_confidences(
+        self,
+        mode: str,
+        generation_outputs: dict[str, Any],
+        reward_outputs: Optional[dict[str, Any]] = None,
+        inputs: Optional[list[dict[str, Any]]] = None,
+    ) -> None:
+        if not getattr(self.args, "log_batch_confidences", False):
+            return
+
+        if mode not in self._confidence_batch_counters:
+            self._confidence_batch_counters[mode] = 0
+
+        def _flatten_gathered_objects(gathered):
+            if not isinstance(gathered, list):
+                return [gathered]
+            flattened = []
+            for item in gathered:
+                if isinstance(item, list):
+                    flattened.extend(item)
+                else:
+                    flattened.append(item)
+            return flattened
+
+        confidence_scores = reward_outputs.get("confidence_scores") if reward_outputs is not None else None
+        if confidence_scores is None:
+            gathered_completions = _flatten_gathered_objects(gather_object(generation_outputs["completions_text"]))
+            confidence_values = [
+                0.0 if (value := extract_confidence_value(text)) is None else float(value)
+                for text in gathered_completions
+            ]
+        elif isinstance(confidence_scores, torch.Tensor):
+            confidence_values = [float(x) for x in confidence_scores.detach().cpu().tolist()]
+        else:
+            confidence_values = [float(x) for x in confidence_scores]
+
+        answer_correctness = None
+        if reward_outputs is not None:
+            optimization_rewards_per_func = reward_outputs.get("optimization_rewards_per_func")
+            if isinstance(optimization_rewards_per_func, torch.Tensor) and optimization_rewards_per_func.ndim == 2:
+                if optimization_rewards_per_func.size(1) > 1:
+                    answer_correctness = [float(x) for x in optimization_rewards_per_func[:, 1].detach().cpu().tolist()]
+
+        group_success_rate_values = None
+        if reward_outputs is not None:
+            group_success_rate = reward_outputs.get("group_success_rate")
+            if isinstance(group_success_rate, torch.Tensor):
+                group_success_rate_values = [float(x) for x in group_success_rate.detach().cpu().tolist()]
+
+        gathered_inputs = _flatten_gathered_objects(gather_object(inputs if inputs is not None else []))
+        total_rollouts = len(confidence_values)
+        if answer_correctness is not None and len(answer_correctness) != total_rollouts:
+            answer_correctness = None
+        if group_success_rate_values is not None and len(group_success_rate_values) != total_rollouts:
+            group_success_rate_values = None
+        if gathered_inputs and len(gathered_inputs) != total_rollouts:
+            gathered_inputs = []
+
+        batch_index = self._confidence_batch_counters[mode]
+        self._confidence_batch_counters[mode] += 1
+
+        if not self.accelerator.is_main_process:
+            return
+
+        record_dir = os.path.join(self.args.output_dir, "batch_confidence")
+        os.makedirs(record_dir, exist_ok=True)
+        record_path = os.path.join(record_dir, f"{mode}.jsonl")
+        with open(record_path, "a", encoding="utf-8") as handle:
+            for group_start in range(0, total_rollouts, self.num_generations):
+                group_end = min(group_start + self.num_generations, total_rollouts)
+                group_inputs = gathered_inputs[group_start:group_end] if gathered_inputs else []
+                first_example = group_inputs[0] if group_inputs else {}
+
+                raw_question_id = None
+                for key in ("question_id", "id", "_id", "example_id"):
+                    if key in first_example and first_example.get(key) is not None:
+                        raw_question_id = first_example.get(key)
+                        break
+                if raw_question_id is None:
+                    raw_question_id = f"batch{batch_index}_group{group_start // self.num_generations}"
+
+                group_record = {
+                    "mode": mode,
+                    "batch_index": batch_index,
+                    "global_step": int(self.state.global_step),
+                    "question_id": str(raw_question_id),
+                    "num_rollouts": group_end - group_start,
+                    "group_success_rate": (
+                        group_success_rate_values[group_start] if group_success_rate_values is not None else None
+                    ),
+                    "is_correct": answer_correctness[group_start:group_end] if answer_correctness is not None else None,
+                    "confidences": confidence_values[group_start:group_end],
+                }
+                handle.write(json.dumps(group_record, ensure_ascii=True) + "\n")
+
     def compute_advantages(self, rewards: torch.Tensor):
         mean_grouped_rewards = rewards.view(-1, self.num_generations).mean(dim=1)
         std_grouped_rewards = rewards.view(-1, self.num_generations).std(dim=1)
@@ -780,6 +878,8 @@ class BaseGRPOTrainer(Trainer, BaseTrainer):
             self._textual_logs["rewards"][name].extend(
                 reward_metric_values[:, i].tolist()[0:num_completions_to_log]
             )
+
+        self._record_batch_confidences(mode, generation_outputs, reward_outputs, inputs)
 
         return {
             "prompt_ids": generation_outputs["prompt_ids"],

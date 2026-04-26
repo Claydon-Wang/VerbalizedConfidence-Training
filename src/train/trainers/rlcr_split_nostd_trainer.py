@@ -41,8 +41,6 @@ class RLCRSplitNoStdTrainer(RLCRSplitTrainer):
             self.state.num_input_tokens_seen += self.accelerator.gather_for_metrics(
                 generation_outputs["attention_mask"].sum()
             ).sum().item()
-        self._metrics[mode]["num_tokens"] = [self.state.num_input_tokens_seen]
-
         agg_completion_mask = self.accelerator.gather_for_metrics(generation_outputs["completion_mask"].sum(1))
         self._metrics[mode]["completions/mean_length"].append(agg_completion_mask.float().mean().item())
         self._metrics[mode]["completions/min_length"].append(agg_completion_mask.float().min().item())
@@ -60,16 +58,7 @@ class RLCRSplitNoStdTrainer(RLCRSplitTrainer):
 
         reward_metric_names = self.optimization_reward_names + self.monitoring_reward_names
         reward_metric_values = torch.cat([optimization_rewards_per_func, monitoring_rewards_per_func], dim=1)
-        for i, reward_func_name in enumerate(reward_metric_names):
-            mean_rewards = torch.nanmean(reward_metric_values[:, i]).item()
-            self._metrics[mode][f"reward_values/{reward_func_name}"].append(mean_rewards)
-
-        self._metrics[mode]["reward_total"].append(
-            0.5 * (answer_group_means.mean().item() + confidence_group_means.mean().item())
-        )
-        self._metrics[mode]["reward_std"].append(
-            0.5 * (answer_group_stds.mean().item() + confidence_group_stds.mean().item())
-        )
+        self._log_reward_metric_summaries(mode, reward_metric_names, reward_metric_values)
         self._metrics[mode]["reward_values/group_success_rate"].append(
             reward_outputs["group_success_rate"].mean().item()
         )
@@ -88,6 +77,8 @@ class RLCRSplitNoStdTrainer(RLCRSplitTrainer):
         self._textual_logs["completion"].extend(gather_object(generation_outputs["completions_text"])[0:num_completions_to_log])
         for i, name in enumerate(reward_metric_names):
             self._textual_logs["rewards"][name].extend(reward_metric_values[:, i].tolist()[0:num_completions_to_log])
+
+        self._record_batch_confidences(mode, generation_outputs, reward_outputs, inputs)
 
         return {
             "prompt_ids": generation_outputs["prompt_ids"],

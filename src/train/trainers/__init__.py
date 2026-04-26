@@ -11,9 +11,12 @@ from src.train.trainers.rlcr_split_global_debias_trainer import RLCRSplitGlobalD
 from src.train.trainers.rlcr_split_global_debias_nostd_trainer import RLCRSplitGlobalDebiasNoStdTrainer
 from src.train.trainers.rlcr_split_global_trainer import RLCRSplitGlobalTrainer
 from src.train.trainers.rlcr_split_global_rw_trainer import RLCRSplitGlobalRWTrainer
+from src.train.trainers.rlcr_split_global_rw_noreweight_trainer import RLCRSplitGlobalRWNoReweightTrainer
 from src.train.trainers.rlcr_split_da_trainer import RLCRSplitDATrainer
 from src.train.trainers.rlcr_split_nostd_trainer import RLCRSplitNoStdTrainer
+from src.train.trainers.rlcr_split_random_target_trainer import RLCRSplitRandomTargetTrainer
 from src.train.trainers.rlcr_split_trainer import RLCRSplitTrainer
+from src.train.trainers.rlcr_split_var_square_trainer import RLCRSplitVarSquareTrainer
 from src.train.trainers.rlcr_contrastive_trainer import RLCRContrastiveTrainer
 from src.train.trainers.rlcr_trainer import RLCRTrainer
 from src.train.trainers.rlvr_trainer import RLVRTrainer

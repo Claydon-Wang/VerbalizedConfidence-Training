@@ -1,14 +1,13 @@
 from src.train.configs.config_schema import GRPOScriptArguments, GRPOConfig, ModelConfig
 from src.train.configs.config_utils import build_train_config, split_config_dict
+from src.train.datasets import build_dataset
 from trl import get_peft_config
 from transformers import set_seed
 import argparse
 import logging
-from datasets import load_dataset
 import sys
 import os
 from transformers.trainer_utils import get_last_checkpoint
-from src.common.dataset_processing import process_dataset
 from src.train.logger import append_train_summary_csv, configure_tracking, logger_setup
 from src.train.trainers.trainer_registry import build_trainer
 import torch
@@ -69,9 +68,7 @@ def main(script_args, training_args, model_args):
     if last_checkpoint is not None and training_args.resume_from_checkpoint is None:
         logger.info(f"Checkpoint detected, resuming training at {last_checkpoint=}.")
 
-    dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config)
-
-    dataset = process_dataset(dataset, script_args)  
+    dataset = build_dataset(script_args)
 
     for split in dataset:
         if "messages" in dataset[split].column_names:

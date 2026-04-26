@@ -35,7 +35,7 @@ class MathRLCR:
 
 
 @dataclass
-class RLCR_split:
+class HotpotRLCR_split:
     trainer_name: str = "rlcr_split"
     format_pattern: str = "think_answer_confidence"
     sys_prompt_name: str = "think_answer_confidence"
@@ -48,7 +48,40 @@ class RLCR_split:
 
 
 @dataclass
-class MathRLCR_split(RLCR_split):
+class MathRLCR_split:
+    trainer_name: str = "rlcr_split"
+    format_pattern: str = "think_answer_confidence"
+    sys_prompt_name: str = "think_answer_confidence"
+    learning_rate: float = 5e-6
+    temperature: float = 1.0
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5}
+    )
+    monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
+
+
+@dataclass
+class RLCR_split(HotpotRLCR_split):
+    """Backward-compatible alias for Hotpot RLCR_split."""
+    pass
+
+
+@dataclass
+class RLCR_split_VarSquare:
+    trainer_name: str = "rlcr_split_var_square"
+    format_pattern: str = "think_answer_confidence"
+    sys_prompt_name: str = "think_answer_confidence"
+    learning_rate: float = 1e-6
+    temperature: float = 1.0
+    variance_square_lambda: float = 0.5
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5}
+    )
+    monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
+
+
+@dataclass
+class MathRLCR_split_VarSquare(RLCR_split_VarSquare):
     pass
 
 
@@ -143,6 +176,24 @@ class MathRLCR_split_Global_RW(RLCR_split_Global_RW):
 
 
 @dataclass
+class RLCR_split_Global_RW_NoReweight:
+    trainer_name: str = "rlcr_split_global_rw_noreweight"
+    format_pattern: str = "think_answer_confidence"
+    sys_prompt_name: str = "think_answer_confidence"
+    learning_rate: float = 1e-6
+    temperature: float = 1.0
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5}
+    )
+    monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
+
+
+@dataclass
+class MathRLCR_split_Global_RW_NoReweight(RLCR_split_Global_RW_NoReweight):
+    pass
+
+
+@dataclass
 class RLCR_split_NoStd:
     trainer_name: str = "rlcr_split_nostd"
     format_pattern: str = "think_answer_confidence"
@@ -194,6 +245,25 @@ class RLCR_split_Cal:
 
 @dataclass
 class MathRLCR_split_Cal(RLCR_split_Cal):
+    pass
+
+
+@dataclass
+class RLCR_split_RandomTarget:
+    trainer_name: str = "rlcr_split_random_target"
+    format_pattern: str = "think_answer_confidence"
+    sys_prompt_name: str = "think_answer_confidence"
+    learning_rate: float = 1e-6
+    temperature: float = 1.0
+    random_target_gap: float = 0.25
+    optimization_rewards: dict[str, float] = field(
+        default_factory=lambda: {"format": 0.5, "accuracy": 0.5, "brier": 0.5}
+    )
+    monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
+
+
+@dataclass
+class MathRLCR_split_RandomTarget(RLCR_split_RandomTarget):
     pass
 
 

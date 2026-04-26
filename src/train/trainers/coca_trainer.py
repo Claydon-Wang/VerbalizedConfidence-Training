@@ -7,7 +7,7 @@ from math_verify import parse, verify
 
 from src.train.rewards.reward_functions import alpha_score_value, exact_match_score
 from src.train.trainers.grpo_trainer import BaseGRPOTrainer
-from src.train.trainers.trainer_utils import nanmax, nanmin
+from src.train.trainers.trainer_utils import nanmax, nanmin, nanstd
 
 
 class CoCATrainer(BaseGRPOTrainer):
@@ -35,6 +35,79 @@ class CoCATrainer(BaseGRPOTrainer):
             advantages = advantages / (std_grouped_rewards + 1e-4)
 
         return advantages, mean_grouped_rewards, std_grouped_rewards
+
+    def _log_rollout_success_rate_bucket_metrics(
+        self,
+        mode: str,
+        reward_outputs: dict,
+        optimization_rewards_per_func: torch.Tensor,
+        confidence_advantages: torch.Tensor | None = None,
+    ):
+        group_success_rate = reward_outputs["group_success_rate"].float()
+        confidence_scores = reward_outputs["confidence_scores"].float()
+        confidence_reward_raw = optimization_rewards_per_func[:, 2].float()
+        answer_correctness = optimization_rewards_per_func[:, 1].float()
+        confidence_advantages_all = confidence_advantages.float() if confidence_advantages is not None else None
+        if confidence_advantages_all is not None and confidence_advantages_all.shape != group_success_rate.shape:
+            confidence_advantages_all = self.accelerator.gather_for_metrics(confidence_advantages_all)
+            if confidence_advantages_all.shape != group_success_rate.shape:
+                confidence_advantages_all = None
+
+        bucket_masks = {
+            "le_0p5": group_success_rate <= 0.5,
+            "gt_0p5": group_success_rate > 0.5,
+        }
+        for bucket_name, mask in bucket_masks.items():
+            ratio = mask.float().mean().item()
+            if mask.any():
+                confidence_mean = confidence_scores[mask].mean().item()
+                confidence_reward_mean = confidence_reward_raw[mask].mean().item()
+                answer_correctness_mean = answer_correctness[mask].mean().item()
+                if confidence_advantages_all is not None:
+                    bucket_adv = confidence_advantages_all[mask]
+                    confidence_adv_mean = bucket_adv.mean().item()
+                    confidence_adv_mean_abs = bucket_adv.abs().mean().item()
+                    pos_mask = bucket_adv > 0
+                    neg_mask = bucket_adv < 0
+                    confidence_adv_pos_ratio = pos_mask.float().mean().item()
+                    confidence_adv_neg_ratio = neg_mask.float().mean().item()
+                    confidence_adv_pos_mean = bucket_adv[pos_mask].mean().item() if pos_mask.any() else 0.0
+                    confidence_adv_neg_mean = bucket_adv[neg_mask].mean().item() if neg_mask.any() else 0.0
+                else:
+                    confidence_adv_mean = 0.0
+                    confidence_adv_pos_ratio = 0.0
+                    confidence_adv_neg_ratio = 0.0
+                    confidence_adv_mean_abs = 0.0
+                    confidence_adv_pos_mean = 0.0
+                    confidence_adv_neg_mean = 0.0
+            else:
+                confidence_mean = 0.0
+                confidence_reward_mean = 0.0
+                answer_correctness_mean = 0.0
+                confidence_adv_mean = 0.0
+                confidence_adv_pos_ratio = 0.0
+                confidence_adv_neg_ratio = 0.0
+                confidence_adv_mean_abs = 0.0
+                confidence_adv_pos_mean = 0.0
+                confidence_adv_neg_mean = 0.0
+
+            prefix = f"reward_values/rollout_success_{bucket_name}"
+            self._metrics[mode][f"{prefix}_ratio"].append(ratio)
+            self._metrics[mode][f"{prefix}_confidence_mean"].append(confidence_mean)
+            self._metrics[mode][f"{prefix}_confidence_reward_mean"].append(confidence_reward_mean)
+            self._metrics[mode][f"{prefix}_answer_accuracy_mean"].append(answer_correctness_mean)
+            self._metrics[mode][f"{prefix}_confidence_adv_mean"].append(confidence_adv_mean)
+            self._metrics[mode][f"{prefix}_confidence_adv_mean_abs"].append(confidence_adv_mean_abs)
+            self._metrics[mode][f"{prefix}_confidence_adv_pos_ratio"].append(confidence_adv_pos_ratio)
+            self._metrics[mode][f"{prefix}_confidence_adv_neg_ratio"].append(confidence_adv_neg_ratio)
+            self._metrics[mode][f"{prefix}_confidence_adv_pos_mean"].append(confidence_adv_pos_mean)
+            self._metrics[mode][f"{prefix}_confidence_adv_neg_mean"].append(confidence_adv_neg_mean)
+
+    def _log_reward_metric_summaries(self, mode: str, reward_metric_names: list[str], reward_metric_values: torch.Tensor):
+        for i, reward_func_name in enumerate(reward_metric_names):
+            reward_values = reward_metric_values[:, i]
+            self._metrics[mode][f"reward_values/{reward_func_name}_mean"].append(torch.nanmean(reward_values).item())
+            self._metrics[mode][f"reward_values/{reward_func_name}_std"].append(nanstd(reward_values).item())
 
     def _parse_confidence_scores(self, completions):
         confidence_pattern = r"<confidence>(.*?)</confidence>"
@@ -266,8 +339,6 @@ class CoCATrainer(BaseGRPOTrainer):
             self.state.num_input_tokens_seen += self.accelerator.gather_for_metrics(
                 generation_outputs["attention_mask"].sum()
             ).sum().item()
-        self._metrics[mode]["num_tokens"] = [self.state.num_input_tokens_seen]
-
         agg_completion_mask = self.accelerator.gather_for_metrics(generation_outputs["completion_mask"].sum(1))
         self._metrics[mode]["completions/mean_length"].append(agg_completion_mask.float().mean().item())
         self._metrics[mode]["completions/min_length"].append(agg_completion_mask.float().min().item())
@@ -285,21 +356,18 @@ class CoCATrainer(BaseGRPOTrainer):
 
         reward_metric_names = self.optimization_reward_names + self.monitoring_reward_names
         reward_metric_values = torch.cat([optimization_rewards_per_func, monitoring_rewards_per_func], dim=1)
-        for i, reward_func_name in enumerate(reward_metric_names):
-            mean_rewards = torch.nanmean(reward_metric_values[:, i]).item()
-            self._metrics[mode][f"reward_values/{reward_func_name}"].append(mean_rewards)
-
-        self._metrics[mode]["reward_total"].append(
-            0.5 * (answer_group_means.mean().item() + confidence_group_means.mean().item())
-        )
-        self._metrics[mode]["reward_std"].append(
-            0.5 * (answer_group_stds.mean().item() + confidence_group_stds.mean().item())
-        )
+        self._log_reward_metric_summaries(mode, reward_metric_names, reward_metric_values)
         self._metrics[mode]["reward_values/group_success_rate"].append(
             reward_outputs["group_success_rate"].mean().item()
         )
         self._metrics[mode]["reward_values/mean_confidence_prediction"].append(
             reward_outputs["confidence_scores"].mean().item()
+        )
+        self._log_rollout_success_rate_bucket_metrics(
+            mode,
+            reward_outputs,
+            optimization_rewards_per_func,
+            confidence_advantages=confidence_advantages,
         )
         self._metrics[mode]["segments/answer_tokens_mean"].append(answer_mask.sum(1).float().mean().item())
         self._metrics[mode]["segments/confidence_tokens_mean"].append(confidence_mask.sum(1).float().mean().item())
@@ -310,6 +378,8 @@ class CoCATrainer(BaseGRPOTrainer):
         self._textual_logs["completion"].extend(gather_object(generation_outputs["completions_text"])[0:num_completions_to_log])
         for i, name in enumerate(reward_metric_names):
             self._textual_logs["rewards"][name].extend(reward_metric_values[:, i].tolist()[0:num_completions_to_log])
+
+        self._record_batch_confidences(mode, generation_outputs, reward_outputs, inputs)
 
         return {
             "prompt_ids": generation_outputs["prompt_ids"],

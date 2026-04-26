@@ -17,6 +17,7 @@ class TrainConfig:
     trust_remote_code: bool = True
 
     dataset_name: str = ""
+    dataset_cls: Optional[str] = None
     dataset_config: Optional[str] = None
     dataset_train_split: str = "train"
     dataset_test_split: str = "test"
@@ -37,6 +38,7 @@ class TrainConfig:
     log_level: str = "info"
     logging_steps: int = 5
     logging_strategy: str = "steps"
+    log_batch_confidences: bool = True
     lr_scheduler_type: str = "constant_with_warmup"
     mask_truncated_completions: bool = False
     max_prompt_length: int = 3072
@@ -52,6 +54,7 @@ class TrainConfig:
     report_to: list[str] = field(default_factory=lambda: ["swanlab"])
     optimization_rewards: dict[str, float] = field(default_factory=dict)
     monitoring_rewards: list[str] = field(default_factory=list)
+    random_target_gap: float = 0.1
     separation_margin: float = 0.1
     save_strategy: str = "steps"
     save_steps: int = 60
@@ -83,6 +86,7 @@ class TrainConfig:
             "attn_implementation": self.attn_implementation,
             "trust_remote_code": self.trust_remote_code,
             "dataset_name": self.dataset_name,
+            "dataset_cls": self.dataset_cls,
             "dataset_config": self.dataset_config,
             "dataset_train_split": self.dataset_train_split,
             "dataset_test_split": self.dataset_test_split,
@@ -102,6 +106,7 @@ class TrainConfig:
             "log_level": self.log_level,
             "logging_steps": self.logging_steps,
             "logging_strategy": self.logging_strategy,
+            "log_batch_confidences": self.log_batch_confidences,
             "lr_scheduler_type": self.lr_scheduler_type,
             "mask_truncated_completions": self.mask_truncated_completions,
             "max_prompt_length": self.max_prompt_length,
@@ -117,6 +122,7 @@ class TrainConfig:
             "report_to": self.report_to,
             "optimization_rewards": self.optimization_rewards,
             "monitoring_rewards": self.monitoring_rewards,
+            "random_target_gap": self.random_target_gap,
             "separation_margin": self.separation_margin,
             "save_strategy": self.save_strategy,
             "save_steps": self.save_steps,

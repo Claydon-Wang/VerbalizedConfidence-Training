@@ -126,6 +126,17 @@ Training writes to:
 - `logs/train/...`: checkpoints, trainer state, model config, and run artifacts
 - `temp/exp_tracking/`: local tracking backend artifacts
 
+If you want to persist every batch's raw confidence values, enable:
+
+```bash
+--log_batch_confidences true
+```
+
+This writes one JSONL record per batch under:
+
+- `logs/train/.../<timestamp>/batch_confidence/train.jsonl`
+- `logs/train/.../<timestamp>/batch_confidence/eval.jsonl`
+
 Tracking is configured through [`src/train/logger.py`](../src/train/logger.py) and the `report_to` field in training config presets. The repository is typically used with SwanLab through the `wandb` compatibility bridge described in [INSTALL.md](./INSTALL.md).
 
 ## Notes

@@ -24,6 +24,7 @@ def update_config(config_dict, dataset_name, method_name, model_name):
     method_slug = method_name.lower()
     model_slug = model_name.replace("_", "-").lower()
     timestamp = datetime.now().strftime("%Y-%m%d-%H%M")
+    config_dict["dataset_cls"] = dataset_name
     config_dict["run_name"] = f"{dataset_slug}-{method_slug}-{model_slug}-{timestamp}"
     logs_root = config_dict.pop("logs_root", "logs/train")
     config_dict["output_dir"] = os.path.join(logs_root, dataset_slug, method_slug, model_name.lower(), timestamp)

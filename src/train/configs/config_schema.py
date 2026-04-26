@@ -23,6 +23,8 @@ class GRPOScriptArguments(ScriptArguments):
             Maximum length for cosine scaling.
     """
 
+    dataset_cls: Optional[str] = field(default=None, metadata={"help": "Dataset config class name."})
+
     dataset_name: str = field(metadata={"help": "Dataset name."})
     dataset_config: Optional[str] = field(
         default=None,
@@ -161,6 +163,14 @@ class GRPOConfig(trl.GRPOConfig):
         default=1.0,
         metadata={"help": "Lambda used by RLCR_split_DAB for the difficulty-alignment term in the confidence reward."},
     )
+    variance_square_lambda: float = field(
+        default=0.1,
+        metadata={"help": "Lambda used by RLCR_split_VarSquare for the confidence variance-square bonus."},
+    )
+    random_target_gap: float = field(
+        default=0.1,
+        metadata={"help": "Half-width of the local interval around empirical group accuracy used by RLCR_split_random_target."},
+    )
     system_prompt: Optional[str] = field(
         default=None, metadata={"help": "The optional system prompt to use for benchmarking."}
     )
@@ -232,6 +242,10 @@ class GRPOConfig(trl.GRPOConfig):
     log_completions: bool = field(
         default=True,
         metadata={"help": "Whether to log the completions during training."},
+    )
+    log_batch_confidences: bool = field(
+        default=False,
+        metadata={"help": "Whether to save all confidence values for every batch under output_dir/batch_confidence/."},
     )
 
     completion_logging_steps: Optional[int] = field(default=5, metadata={"help": "Log completions every n steps."}) 

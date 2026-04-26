@@ -33,170 +33,6 @@ export HF_DATASETS_CACHE=/mnt/sharedata/ssd_large/common/datasets/
 #   --method RLCR_split \
 #   --model Qwen25_1_5B_Instruct
 
-# # RLCR_split_DAB
-# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-# accelerate launch --num_processes 8 \
-#   --config_file src/train/configs/launch/deepspeed.yaml \
-#   -m src.train.train_main \
-#   --dataset Hotpot \
-#   --method RLCR_split_DAB \
-#   --model Qwen25_1_5B_Instruct \
-#   --dab_lambda 1.0
-#
-# # RLCR_split_DA
-# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-# accelerate launch --num_processes 8 \
-#   --config_file src/train/configs/launch/deepspeed.yaml \
-#   -m src.train.train_main \
-#   --dataset Hotpot \
-#   --method RLCR_split_DA \
-#   --model Qwen25_1_5B_Instruct
-
-# # RLCR_split_Global
-# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-# accelerate launch --num_processes 8 \
-#   --config_file src/train/configs/launch/deepspeed.yaml \
-#   -m src.train.train_main \
-#   --dataset Hotpot \
-#   --method RLCR_split_Global \
-#   --model Qwen25_1_5B_Instruct
-
-# # RLCR_split_Batch
-# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-# accelerate launch --num_processes 8 \
-#   --config_file src/train/configs/launch/deepspeed.yaml \
-#   -m src.train.train_main \
-#   --dataset Hotpot \
-#   --method RLCR_split_Batch \
-#   --model Qwen25_1_5B_Instruct
-
-# # RLCR_split_Global_RW
-# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-# accelerate launch --num_processes 8 \
-#   --config_file src/train/configs/launch/deepspeed.yaml \
-#   -m src.train.train_main \
-#   --dataset Hotpot \
-#   --method RLCR_split_Global_RW \
-#   --model Qwen25_1_5B_Instruct
-
-CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-accelerate launch --num_processes 8 \
-  --config_file src/train/configs/launch/deepspeed.yaml \
-  -m src.train.train_main \
-  --dataset Hotpot \
-  --method RLCR_split_Global_Debias \
-  --model Qwen25_1_5B_Instruct
-
-
-CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-accelerate launch --num_processes 8 \
-  --config_file src/train/configs/launch/deepspeed.yaml \
-  -m src.train.train_main \
-  --dataset Hotpot \
-  --method RLCR_split_Global_Debias_NoStd \
-  --model Qwen25_1_5B_Instruct
-
-# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-# accelerate launch --num_processes 8 \
-#   --config_file src/train/configs/launch/deepspeed.yaml \
-#   -m src.train.train_main \
-#   --dataset Hotpot \
-#   --method RLCR_split_Batch \
-#   --model Qwen25_1_5B_Instruct
-
-# CoCA
-# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-# accelerate launch --num_processes 8 \
-#   --config_file src/train/configs/launch/deepspeed.yaml \
-#   -m src.train.train_main \
-#   --dataset Hotpot \
-#   --method CoCA \
-#   --model Qwen25_1_5B_Instruct
-
-# BAR
-# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-# accelerate launch --num_processes 8 \
-#   --config_file src/train/configs/launch/deepspeed.yaml \
-#   -m src.train.train_main \
-#   --dataset Hotpot \
-#   --method BAR \
-#   --model Qwen25_1_5B_Instruct
-
-# # COCA_difficulty
-# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-# accelerate launch --num_processes 8 \
-#   --config_file src/train/configs/launch/deepspeed.yaml \
-#   -m src.train.train_main \
-#   --dataset Hotpot \
-#   --method COCA_difficulty \
-#   --model Qwen25_1_5B_Instruct
-
-# # COCA_DA
-# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-# accelerate launch --num_processes 8 \
-#   --config_file src/train/configs/launch/deepspeed.yaml \
-#   -m src.train.train_main \
-#   --dataset Hotpot \
-#   --method COCA_DA \
-#   --model Qwen25_1_5B_Instruct
-
-# BRPC
-# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-# accelerate launch --num_processes 8 \
-#   --config_file src/train/configs/launch/deepspeed.yaml \
-#   -m src.train.train_main \
-#   --dataset Hotpot \
-#   --method BRPC \
-#   --model Qwen25_1_5B_Instruct
-
-# CoCA Bayesian
-# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-# accelerate launch --num_processes 8 \
-#   --config_file src/train/configs/launch/deepspeed.yaml \
-#   -m src.train.train_main \
-#   --dataset Hotpot \
-#   --method CoCABayesian \
-#   --model Qwen25_1_5B_Instruct
-
-
-# RLCR Contrastive
-# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-# accelerate launch --num_processes 8 \
-#   --config_file src/train/configs/launch/deepspeed.yaml \
-#   -m src.train.train_main \
-#   --dataset Hotpot \
-#   --method RLCRContrastive \
-#   --model Qwen25_1_5B_Instruct \
-
-
-# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-# accelerate launch --num_processes 8 \
-#   --config_file src/train/configs/launch/deepspeed.yaml \
-#   -m src.train.train_main \
-#   --dataset Hotpot \
-#   --method RLCRContrastive \
-#   --model Qwen25_1_5B_Instruct \
-#   --separation_weight 0.3 \
-#   --separation_margin 0.3
-
-
-# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-# accelerate launch --num_processes 8 \
-#   --config_file src/train/configs/launch/deepspeed.yaml \
-#   -m src.train.train_main \
-#   --dataset Hotpot \
-#   --method RLCRalpha \
-#   --model Qwen25_1_5B_Instruct
-
-
-# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-# accelerate launch --num_processes 8 \
-#   --config_file src/train/configs/launch/deepspeed.yaml \
-#   -m src.train.train_main \
-#   --dataset Math \
-#   --method MathRLCRalpha \
-#   --model Qwen25_1_5B_Instruct
-
 ## MATH
 # RLVR
 # CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
@@ -222,6 +58,25 @@ accelerate launch --num_processes 8 \
 #   --config_file src/train/configs/launch/deepspeed.yaml \
 #   -m src.train.train_main \
 #   --dataset Math \
+#   --method MathCoCA \
+#   --model Qwen25_1_5B_Instruct
+
+## GSM8K
+# RLCR_split
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
+accelerate launch --num_processes 8 \
+  --config_file src/train/configs/launch/deepspeed.yaml \
+  -m src.train.train_main \
+  --dataset GSM8K \
+  --method MathRLCR_split \
+  --model Qwen25_1_5B_Instruct
+
+# CoCA
+# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
+# accelerate launch --num_processes 8 \
+#   --config_file src/train/configs/launch/deepspeed.yaml \
+#   -m src.train.train_main \
+#   --dataset GSM8K \
 #   --method MathCoCA \
 #   --model Qwen25_1_5B_Instruct
 

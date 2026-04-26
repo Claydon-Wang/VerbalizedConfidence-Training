@@ -35,6 +35,12 @@ class HotpotRLCRSplit(BasePolicyConfig):
 
 
 @dataclass
+class HotpotRLCRSplitVarSquare(BasePolicyConfig):
+    fine_tuned_dataset: str | None = "hotpot"
+    fine_tuned_algorithm: str | None = "rlcr_split_var_square"
+
+
+@dataclass
 class HotpotRLCRSplitBatch(BasePolicyConfig):
     fine_tuned_dataset: str | None = "hotpot"
     fine_tuned_algorithm: str | None = "rlcr_split_batch"
@@ -65,6 +71,12 @@ class HotpotRLCRSplitGlobalRW(BasePolicyConfig):
 
 
 @dataclass
+class HotpotRLCRSplitGlobalRWNoReweight(BasePolicyConfig):
+    fine_tuned_dataset: str | None = "hotpot"
+    fine_tuned_algorithm: str | None = "rlcr_split_global_rw_noreweight"
+
+
+@dataclass
 class HotpotRLCRSplitDAB(BasePolicyConfig):
     fine_tuned_dataset: str | None = "hotpot"
     fine_tuned_algorithm: str | None = "rlcr_split_dab"
@@ -74,6 +86,12 @@ class HotpotRLCRSplitDAB(BasePolicyConfig):
 class HotpotRLCRSplitCal(BasePolicyConfig):
     fine_tuned_dataset: str | None = "hotpot"
     fine_tuned_algorithm: str | None = "rlcr_split_cal"
+
+
+@dataclass
+class HotpotRLCRSplitRandomTarget(BasePolicyConfig):
+    fine_tuned_dataset: str | None = "hotpot"
+    fine_tuned_algorithm: str | None = "rlcr_split_random_target"
 
 
 @dataclass
@@ -156,6 +174,36 @@ class MathRLCRSplit(BasePolicyConfig):
 
 
 @dataclass
+class MathRLCRSplitVarSquare(BasePolicyConfig):
+    fine_tuned_dataset: str | None = "math"
+    fine_tuned_algorithm: str | None = "rlcr_split_var_square"
+
+
+@dataclass
+class GSM8KRLCRSplit(BasePolicyConfig):
+    fine_tuned_dataset: str | None = "gsm8k"
+    fine_tuned_algorithm: str | None = "rlcr_split"
+
+
+@dataclass
+class GSM8KRLCRSplitVarSquare(BasePolicyConfig):
+    fine_tuned_dataset: str | None = "gsm8k"
+    fine_tuned_algorithm: str | None = "rlcr_split_var_square"
+
+
+@dataclass
+class BigMathRLCRSplit(BasePolicyConfig):
+    fine_tuned_dataset: str | None = "big_math"
+    fine_tuned_algorithm: str | None = "rlcr_split"
+
+
+@dataclass
+class BigMathRLCRSplitVarSquare(BasePolicyConfig):
+    fine_tuned_dataset: str | None = "big_math"
+    fine_tuned_algorithm: str | None = "rlcr_split_var_square"
+
+
+@dataclass
 class MathRLCRSplitBatch(BasePolicyConfig):
     fine_tuned_dataset: str | None = "math"
     fine_tuned_algorithm: str | None = "rlcr_split_batch"
@@ -186,6 +234,12 @@ class MathRLCRSplitGlobalRW(BasePolicyConfig):
 
 
 @dataclass
+class MathRLCRSplitGlobalRWNoReweight(BasePolicyConfig):
+    fine_tuned_dataset: str | None = "math"
+    fine_tuned_algorithm: str | None = "rlcr_split_global_rw_noreweight"
+
+
+@dataclass
 class MathRLCRSplitDAB(BasePolicyConfig):
     fine_tuned_dataset: str | None = "math"
     fine_tuned_algorithm: str | None = "rlcr_split_dab"
@@ -195,6 +249,12 @@ class MathRLCRSplitDAB(BasePolicyConfig):
 class MathRLCRSplitCal(BasePolicyConfig):
     fine_tuned_dataset: str | None = "math"
     fine_tuned_algorithm: str | None = "rlcr_split_cal"
+
+
+@dataclass
+class MathRLCRSplitRandomTarget(BasePolicyConfig):
+    fine_tuned_dataset: str | None = "math"
+    fine_tuned_algorithm: str | None = "rlcr_split_random_target"
 
 
 @dataclass
