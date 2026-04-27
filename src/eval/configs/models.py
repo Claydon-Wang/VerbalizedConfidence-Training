@@ -33,6 +33,11 @@ class Qwen25_7B_Instruct(BaseModelConfig):
 
 
 @dataclass
+class Qwen3_1_7B(BaseModelConfig):
+    model_name_or_path: str = "Qwen/Qwen3-1.7B"
+
+
+@dataclass
 class Qwen3_4B_Instruct_2507(BaseModelConfig):
     model_name_or_path: str = "Qwen/Qwen3-4B-Instruct-2507"
 

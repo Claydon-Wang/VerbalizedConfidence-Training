@@ -66,7 +66,6 @@ class TrainConfig:
     task_spec: str = "generation"
     temperature: float = 0.7
     use_vllm: bool = True
-    vllm_device: str = "auto"
     vllm_gpu_memory_utilization: float = 0.4
     warmup_ratio: float = 0.05
     wandb_project: str = "RLCR"
@@ -135,7 +134,6 @@ class TrainConfig:
             "task_spec": self.task_spec,
             "temperature": self.temperature,
             "use_vllm": self.use_vllm,
-            "vllm_device": self.vllm_device,
             "vllm_gpu_memory_utilization": self.vllm_gpu_memory_utilization,
             "warmup_ratio": self.warmup_ratio,
             "wandb_project": self.wandb_project,

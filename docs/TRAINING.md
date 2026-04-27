@@ -68,6 +68,7 @@ Current CoCA implementation details:
 - `Qwen25_1_5B_Instruct`
 - `Qwen25_7B`
 - `Qwen25_7B_Instruct`
+- `Qwen3_1_7B`
 
 ### Methods
 
