@@ -36,6 +36,10 @@ def _extract_last_tag_value(content, tag_name):
     return matches[-1] if matches else ""
 
 
+def extract_answer_value(content) -> str:
+    return _extract_last_tag_value(content, "answer").strip()
+
+
 def extract_confidence_value(content) -> Optional[float]:
     raw_confidence = _extract_last_tag_value(content, "confidence")
     if raw_confidence == "":

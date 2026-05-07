@@ -251,7 +251,9 @@ class GRPOConfig(trl.GRPOConfig):
     )
     log_batch_confidences: bool = field(
         default=False,
-        metadata={"help": "Whether to save all confidence values for every batch under output_dir/batch_confidence/."},
+        metadata={
+            "help": "Whether to save rollout-level answers/confidences under output_dir/batch_confidence/."
+        },
     )
 
     completion_logging_steps: Optional[int] = field(default=5, metadata={"help": "Log completions every n steps."}) 

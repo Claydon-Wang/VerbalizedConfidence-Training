@@ -49,3 +49,4 @@ jupyterlab
 pytest==8.4.0
 python-dotenv==1.1.0
 math-verify
+scikit-learn

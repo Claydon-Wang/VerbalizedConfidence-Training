@@ -14,6 +14,7 @@
 
 import json
 import os
+import re
 import textwrap
 import warnings
 from collections import defaultdict, deque
@@ -73,7 +74,7 @@ from src.train.trainers.trainer_utils import (
 )
 from src.train.trainers.base_trainer import BaseTrainer
 from src.train.rewards.reward_factory import build_reward_functions
-from src.train.rewards.reward_functions import extract_confidence_value
+from src.train.rewards.reward_functions import extract_answer_value, extract_confidence_value
 import gc
 
 if is_peft_available():
@@ -524,12 +525,22 @@ class BaseGRPOTrainer(Trainer, BaseTrainer):
         return last_hidden_state
 
     @profiling_decorator
-    def _get_per_token_logps(self, model, input_ids, attention_mask, logits_to_keep, batch_size=None, mode = "train") -> torch.Tensor:
+    def _get_per_token_logps(
+        self,
+        model,
+        input_ids,
+        attention_mask,
+        logits_to_keep,
+        batch_size=None,
+        mode="train",
+        return_entropies: bool = False,
+    ) -> torch.Tensor:
         batch_size = batch_size or input_ids.size(0)  # Chunk inputs into smaller batches to reduce memory peak
         batch_size = self.args.per_device_train_batch_size ##Set small batch size to reduce memory peak
         if mode =="eval":
             batch_size = 1
         all_logps = []
+        all_entropies = []
         for i in range(0, input_ids.size(0), batch_size):
             input_ids_batch = input_ids[i : i + batch_size]
             attention_mask_batch = attention_mask[i : i + batch_size]
@@ -548,7 +559,36 @@ class BaseGRPOTrainer(Trainer, BaseTrainer):
             logits = logits / self.temperature
             logps = selective_log_softmax(logits, input_ids_batch)  # compute logprobs for the input tokens
             all_logps.append(logps)
+            if return_entropies:
+                log_probs = torch.log_softmax(logits, dim=-1)
+                all_entropies.append(-(log_probs.exp() * log_probs).sum(dim=-1))
+        if return_entropies:
+            return torch.cat(all_logps, dim=0), torch.cat(all_entropies, dim=0)
         return torch.cat(all_logps, dim=0)
+
+    def _build_tag_token_mask(
+        self,
+        completion_texts: list[str],
+        sequence_length: int,
+        tag_name: str,
+        device: torch.device,
+    ) -> torch.Tensor:
+        mask = torch.zeros((len(completion_texts), sequence_length), dtype=torch.float32, device=device)
+        pattern = re.compile(rf"<{tag_name}>(.*?)</{tag_name}>", re.DOTALL | re.MULTILINE)
+        for row_idx, completion_text in enumerate(completion_texts):
+            matches = list(pattern.finditer(completion_text))
+            if not matches:
+                continue
+            match = matches[-1]
+            token_start = len(
+                self.processing_class(completion_text[: match.start(1)], add_special_tokens=False)["input_ids"]
+            )
+            token_end = len(self.processing_class(completion_text[: match.end(1)], add_special_tokens=False)["input_ids"])
+            token_start = min(max(token_start, 0), sequence_length)
+            token_end = min(max(token_end, 0), sequence_length)
+            if token_end > token_start:
+                mask[row_idx, token_start:token_end] = 1.0
+        return mask
         
  
     @profiling_decorator
@@ -700,6 +740,12 @@ class BaseGRPOTrainer(Trainer, BaseTrainer):
             "completion_ids": completion_ids,
             "completion_ids_list": completion_ids_list,
             "completion_mask": completion_mask,
+            "answer_token_mask": self._build_tag_token_mask(
+                completions_text, completion_ids.size(1), "answer", device
+            ),
+            "confidence_token_mask": self._build_tag_token_mask(
+                completions_text, completion_ids.size(1), "confidence", device
+            ),
             "attention_mask": attention_mask,
             "old_per_token_logps": old_per_token_logps,
             "completions": completions,
@@ -768,30 +814,35 @@ class BaseGRPOTrainer(Trainer, BaseTrainer):
         if gathered_inputs and len(gathered_inputs) != total_rollouts:
             gathered_inputs = []
 
+        gathered_completions = _flatten_gathered_objects(gather_object(generation_outputs["completions_text"]))
+        if len(gathered_completions) != total_rollouts:
+            gathered_completions = []
+
         batch_index = self._confidence_batch_counters[mode]
         self._confidence_batch_counters[mode] += 1
 
-        if not self.accelerator.is_main_process:
-            return
+        group_records = []
+        for group_start in range(0, total_rollouts, self.num_generations):
+            group_end = min(group_start + self.num_generations, total_rollouts)
+            group_inputs = gathered_inputs[group_start:group_end] if gathered_inputs else []
+            first_example = group_inputs[0] if group_inputs else {}
 
-        record_dir = os.path.join(self.args.output_dir, "batch_confidence")
-        os.makedirs(record_dir, exist_ok=True)
-        record_path = os.path.join(record_dir, f"{mode}.jsonl")
-        with open(record_path, "a", encoding="utf-8") as handle:
-            for group_start in range(0, total_rollouts, self.num_generations):
-                group_end = min(group_start + self.num_generations, total_rollouts)
-                group_inputs = gathered_inputs[group_start:group_end] if gathered_inputs else []
-                first_example = group_inputs[0] if group_inputs else {}
+            raw_question_id = None
+            for key in ("question_id", "id", "_id", "example_id"):
+                if key in first_example and first_example.get(key) is not None:
+                    raw_question_id = first_example.get(key)
+                    break
+            if raw_question_id is None:
+                raw_question_id = f"batch{batch_index}_group{group_start // self.num_generations}"
 
-                raw_question_id = None
-                for key in ("question_id", "id", "_id", "example_id"):
-                    if key in first_example and first_example.get(key) is not None:
-                        raw_question_id = first_example.get(key)
-                        break
-                if raw_question_id is None:
-                    raw_question_id = f"batch{batch_index}_group{group_start // self.num_generations}"
+            group_answers = []
+            if gathered_completions:
+                group_answers = [extract_answer_value(text) for text in gathered_completions[group_start:group_end]]
 
-                group_record = {
+            group_confidences = confidence_values[group_start:group_end]
+
+            group_records.append(
+                {
                     "mode": mode,
                     "batch_index": batch_index,
                     "global_step": int(self.state.global_step),
@@ -801,9 +852,18 @@ class BaseGRPOTrainer(Trainer, BaseTrainer):
                         group_success_rate_values[group_start] if group_success_rate_values is not None else None
                     ),
                     "is_correct": answer_correctness[group_start:group_end] if answer_correctness is not None else None,
-                    "confidences": confidence_values[group_start:group_end],
+                    "answers": group_answers,
+                    "confidences": group_confidences,
                 }
-                handle.write(json.dumps(group_record, ensure_ascii=True) + "\n")
+            )
+
+        if self.accelerator.is_main_process:
+            record_dir = os.path.join(self.args.output_dir, "batch_confidence")
+            os.makedirs(record_dir, exist_ok=True)
+            record_path = os.path.join(record_dir, f"{mode}.jsonl")
+            with open(record_path, "a", encoding="utf-8") as handle:
+                for group_record in group_records:
+                    handle.write(json.dumps(group_record, ensure_ascii=True) + "\n")
 
     def compute_advantages(self, rewards: torch.Tensor):
         mean_grouped_rewards = rewards.view(-1, self.num_generations).mean(dim=1)
@@ -886,6 +946,8 @@ class BaseGRPOTrainer(Trainer, BaseTrainer):
             "prompt_mask": generation_outputs["prompt_mask"],
             "completion_ids": generation_outputs["completion_ids"],
             "completion_mask": generation_outputs["completion_mask"],
+            "answer_token_mask": generation_outputs["answer_token_mask"],
+            "confidence_token_mask": generation_outputs["confidence_token_mask"],
             "advantages": advantages,
             "old_per_token_logps": generation_outputs["old_per_token_logps"],
         }
@@ -919,18 +981,49 @@ class BaseGRPOTrainer(Trainer, BaseTrainer):
                 self.accelerator.wait_for_everyone()
         prompt_ids, prompt_mask = inputs["prompt_ids"], inputs["prompt_mask"]
         completion_ids, completion_mask = inputs["completion_ids"], inputs["completion_mask"]
+        answer_token_mask = inputs["answer_token_mask"]
+        confidence_token_mask = inputs["confidence_token_mask"]
 
          #sum completion masks to find max dimension
         max_dim = completion_mask.sum(1).max()
         #now clip everything to that dim
         completion_mask = completion_mask[:, :max_dim]
         completion_ids = completion_ids[:, :max_dim]
+        answer_token_mask = answer_token_mask[:, :max_dim]
+        confidence_token_mask = confidence_token_mask[:, :max_dim]
 
         input_ids = torch.cat([prompt_ids, completion_ids], dim=1)
         attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)
         logits_to_keep = completion_ids.size(1)  # we only need to compute the logits for the completion tokens
 
-        per_token_logps = self._get_per_token_logps(model, input_ids, attention_mask, logits_to_keep)
+        per_token_logps, per_token_entropies = self._get_per_token_logps(
+            model, input_ids, attention_mask, logits_to_keep, return_entropies=True
+        )
+
+        def _masked_mean(values: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+            denom = mask.sum()
+            if denom.item() == 0:
+                return torch.tensor(float("nan"), dtype=values.dtype, device=values.device)
+            return (values * mask).sum() / denom
+
+        completion_entropy = _masked_mean(per_token_entropies, completion_mask.float())
+        answer_entropy = _masked_mean(per_token_entropies, (completion_mask * answer_token_mask).float())
+        confidence_entropy = _masked_mean(per_token_entropies, (completion_mask * confidence_token_mask).float())
+        answer_present_ratio = (answer_token_mask.sum(dim=1) > 0).float().mean()
+        confidence_present_ratio = (confidence_token_mask.sum(dim=1) > 0).float().mean()
+
+        gathered_completion_entropy = self.accelerator.gather_for_metrics(completion_entropy)
+        self._metrics[mode]["token_entropy/completion_mean"].append(gathered_completion_entropy.nanmean().item())
+        gathered_answer_entropy = self.accelerator.gather_for_metrics(answer_entropy)
+        self._metrics[mode]["token_entropy/answer_mean"].append(gathered_answer_entropy.nanmean().item())
+        gathered_confidence_entropy = self.accelerator.gather_for_metrics(confidence_entropy)
+        self._metrics[mode]["token_entropy/confidence_mean"].append(gathered_confidence_entropy.nanmean().item())
+        gathered_answer_present_ratio = self.accelerator.gather_for_metrics(answer_present_ratio)
+        self._metrics[mode]["token_entropy/answer_present_ratio"].append(gathered_answer_present_ratio.nanmean().item())
+        gathered_confidence_present_ratio = self.accelerator.gather_for_metrics(confidence_present_ratio)
+        self._metrics[mode]["token_entropy/confidence_present_ratio"].append(
+            gathered_confidence_present_ratio.nanmean().item()
+        )
 
         if self.beta != 0.0:
             with torch.no_grad():

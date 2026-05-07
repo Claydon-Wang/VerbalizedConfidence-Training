@@ -1,7 +1,7 @@
 # Hugging Face mirrors/caches (optional, adjust as needed)
 export HF_ENDPOINT=https://hf-mirror.com
-export HF_HOME=/mnt/sharedata/ssd_large/common/LLMs/
-export HF_DATASETS_CACHE=/mnt/sharedata/ssd_large/common/datasets/
+export HF_HOME=/data/common/LLMs/
+export HF_DATASETS_CACHE=/data/common/datasets/
 
 # Uncomment one command at a time.
 

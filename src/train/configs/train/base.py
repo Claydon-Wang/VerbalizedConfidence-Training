@@ -66,7 +66,7 @@ class TrainConfig:
     task_spec: str = "generation"
     temperature: float = 0.7
     use_vllm: bool = True
-    vllm_gpu_memory_utilization: float = 0.4
+    vllm_gpu_memory_utilization: float = 0.5
     warmup_ratio: float = 0.05
     wandb_project: str = "RLCR"
 

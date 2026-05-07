@@ -369,8 +369,8 @@ class CoCATrainer(BaseGRPOTrainer):
             optimization_rewards_per_func,
             confidence_advantages=confidence_advantages,
         )
-        self._metrics[mode]["segments/answer_tokens_mean"].append(answer_mask.sum(1).float().mean().item())
-        self._metrics[mode]["segments/confidence_tokens_mean"].append(confidence_mask.sum(1).float().mean().item())
+        self._metrics[mode]["completions/answer_tokens_mean"].append(answer_mask.sum(1).float().mean().item())
+        self._metrics[mode]["completions/confidence_tokens_mean"].append(confidence_mask.sum(1).float().mean().item())
 
         num_completions_to_log = self.args.num_completions_to_log
         self._textual_logs["step"].extend([str(self.state.global_step)] * num_completions_to_log)
