@@ -143,14 +143,6 @@ class GRPOConfig(trl.GRPOConfig):
         default_factory=list,
         metadata={"help": "Reward names to compute for monitoring only; these do not affect optimization."},
     )
-    separation_margin: float = field(
-        default=0.1,
-        metadata={"help": "Margin enforced between positive and negative confidence predictions in a rollout group."},
-    )
-    contrastive_temperature: float = field(
-        default=0.1,
-        metadata={"help": "Temperature tau for pairwise sigmoid contrastive confidence reward."},
-    )
     bar_alpha: float = field(
         default=0.5,
         metadata={"help": "Alpha used in BAR coupled target: T_i = alpha * correctness + (1 - alpha) * group_success_rate."},
@@ -158,18 +150,6 @@ class GRPOConfig(trl.GRPOConfig):
     confidence_alpha: float = field(
         default=2.0,
         metadata={"help": "Alpha used by alpha-based confidence scoring rewards; must be > 1."},
-    )
-    dab_lambda: float = field(
-        default=1.0,
-        metadata={"help": "Lambda used by RLCR_split_DAB for the difficulty-alignment term in the confidence reward."},
-    )
-    variance_square_lambda: float = field(
-        default=0.1,
-        metadata={"help": "Lambda used by RLCR_split_VarSquare for the confidence variance-square bonus."},
-    )
-    random_target_gap: float = field(
-        default=0.1,
-        metadata={"help": "Half-width of the local interval around empirical group accuracy used by RLCR_split_random_target."},
     )
     dcpo_lambda: float = field(
         default=0.5,

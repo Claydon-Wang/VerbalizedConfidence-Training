@@ -2,7 +2,6 @@ import re
 from math_verify import verify,parse
 import string
 import math
-import random
 from typing import Optional
 
 def normalize_answer(s):
@@ -213,65 +212,6 @@ def confidence_one_or_zero(completions,answer, **kwargs):
     return matches
 
 
-def _sigmoid(value):
-    return 1.0 / (1.0 + math.exp(-value))
-
-
-def separation_reward(
-    completions,
-    answer,
-    group_size=None,
-    contrastive_temperature=0.1,
-    source=None,
-    format_pattern=None,
-    **kwargs,
-):
-    completion_contents = [completion[0]["content"] for completion in completions]
-    if group_size is None or group_size <= 0:
-        return [0.0 for _ in completion_contents]
-    if contrastive_temperature <= 0.0:
-        raise ValueError("contrastive_temperature must be > 0.")
-
-    format_rewards = format_reward(format_pattern, completions) if format_pattern is not None else [1.0] * len(completion_contents)
-    correctness_rewards = accuracy_reward(
-        format_pattern=format_pattern,
-        completions=completions,
-        answer=answer,
-        source=source,
-    )
-    confidences = [
-        extract_confidence_value(content) if format_ok == 1.0 else None
-        for content, format_ok in zip(completion_contents, format_rewards)
-    ]
-    rewards = [0.0 for _ in completion_contents]
-
-    for group_start in range(0, len(completion_contents), group_size):
-        group_end = min(group_start + group_size, len(completion_contents))
-        group_correctness = correctness_rewards[group_start:group_end]
-        group_confidences = confidences[group_start:group_end]
-        pos_indices = [idx for idx, (label, conf) in enumerate(zip(group_correctness, group_confidences)) if label == 1.0 and conf is not None]
-        neg_indices = [idx for idx, (label, conf) in enumerate(zip(group_correctness, group_confidences)) if label == 0.0 and conf is not None]
-
-        if not pos_indices or not neg_indices:
-            continue
-
-        for offset, (label, conf) in enumerate(zip(group_correctness, group_confidences)):
-            if conf is None:
-                rewards[group_start + offset] = 0.0
-                continue
-
-            if label == 1.0:
-                pair_idx = random.choice(neg_indices)
-                pair_conf = group_confidences[pair_idx]
-                rewards[group_start + offset] = _sigmoid((conf - pair_conf) / contrastive_temperature)
-            elif label == 0.0:
-                pair_idx = random.choice(pos_indices)
-                pair_conf = group_confidences[pair_idx]
-                rewards[group_start + offset] = _sigmoid((pair_conf - conf) / contrastive_temperature)
-            else:
-                rewards[group_start + offset] = 0.0
-
-    return rewards
 if __name__ == '__main__':
     s = "    h   ello whatever </think> <answer> The number of non-empty subsets 31 </answer> <confidence> 0.9 </confidence>   \n \n  "
  
