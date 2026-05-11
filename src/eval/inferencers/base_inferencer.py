@@ -33,21 +33,20 @@ class BaseInferencer:
     def confidence_extractor(confidence_text):
         if confidence_text == "":
             return 0, 0.0
-        try:
-            confidence = float(confidence_text)
+        def normalize_confidence(confidence):
+            confidence = round(float(confidence), 6)
             if 0 <= confidence <= 1:
                 return 1, confidence
             if 1 < confidence <= 100:
                 return 1, confidence / 100
             return 0, 0.0
+
+        try:
+            return normalize_confidence(confidence_text)
         except Exception:
             first_number = re.search(r"-?\d+(?:\.\d+)?", confidence_text)
             if first_number:
-                first_number = float(first_number.group())
-                if 0 <= first_number <= 1:
-                    return 1, first_number
-                if 1 < first_number <= 100:
-                    return 1, first_number / 100
+                return normalize_confidence(first_number.group())
             return 0, 0.0
 
     def fill_missing_answers(self, texts, outputs):
@@ -150,7 +149,7 @@ class BaseInferencer:
         fine_tuned_algorithm = getattr(self.config, "fine_tuned_algorithm", None)
         if fine_tuned_algorithm == "rlvr":
             return "think_answer"
-        if fine_tuned_algorithm in {"rlcr", "rlcr_split", "coca", "dcpo"}:
+        if fine_tuned_algorithm in {"rlcr", "rlcr_split", "rlcr_split_confpuresft", "coca", "dcpo"}:
             return "think_answer_confidence"
 
         if inferencer_name == "verbalized_confidence":

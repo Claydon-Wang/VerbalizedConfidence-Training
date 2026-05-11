@@ -36,7 +36,7 @@ class TrainConfig:
     hub_strategy: str = "end"
     learning_rate: float = 1e-6
     log_level: str = "info"
-    logging_steps: int = 5
+    logging_steps: int = 2
     logging_strategy: str = "steps"
     log_batch_confidences: bool = False
     lr_scheduler_type: str = "constant_with_warmup"
@@ -56,8 +56,8 @@ class TrainConfig:
     monitoring_rewards: list[str] = field(default_factory=list)
     dcpo_lambda: float = 0.5
     save_strategy: str = "steps"
-    save_steps: int = 60
-    save_total_limit: int = 1
+    save_steps: int = 30
+    save_total_limit: int = 6
     scale_rewards: bool = False
     seed: int = 43
     sys_prompt_name: str = "think_answer"

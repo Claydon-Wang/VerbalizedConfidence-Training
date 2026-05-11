@@ -363,6 +363,7 @@ class CoCATrainer(BaseGRPOTrainer):
         self._metrics[mode]["reward_values/mean_confidence_prediction"].append(
             reward_outputs["confidence_scores"].mean().item()
         )
+        self._log_batch_calibration_metrics(mode, generation_outputs, reward_outputs)
         self._log_rollout_success_rate_bucket_metrics(
             mode,
             reward_outputs,
@@ -415,7 +416,20 @@ class CoCATrainer(BaseGRPOTrainer):
         attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)
         logits_to_keep = completion_ids.size(1)
 
-        per_token_logps = self._get_per_token_logps(model, input_ids, attention_mask, logits_to_keep)
+        per_token_logps, per_token_entropies = self._get_per_token_logps(
+            model,
+            input_ids,
+            attention_mask,
+            logits_to_keep,
+            return_entropies=True,
+        )
+        self._log_token_entropy_metrics(
+            mode,
+            per_token_entropies,
+            completion_mask,
+            answer_mask,
+            confidence_mask,
+        )
 
         if self.beta != 0.0:
             with torch.no_grad():

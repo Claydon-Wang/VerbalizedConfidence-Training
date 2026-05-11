@@ -33,6 +33,18 @@ class RLCR_split:
     )
     monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
 
+
+@dataclass
+class RLCR_split_ConfPureSFT:
+    trainer_name: str = "rlcr_split_confpuresft"
+    format_pattern: str = "think_answer_confidence"
+    sys_prompt_name: str = "think_answer_confidence"
+    temperature: float = 1.0
+    conf_pure_sft_alpha: float = 0.1
+    conf_pure_sft_lambda: float = 0.3
+    optimization_rewards: dict[str, float] = field(default_factory=lambda: {"format": 0.5, "accuracy": 0.5})
+    monitoring_rewards: list[str] = field(default_factory=lambda: ["mean_confidence", "confidence_one_or_zero"])
+
 @dataclass
 class CoCA:
     trainer_name: str = "coca"

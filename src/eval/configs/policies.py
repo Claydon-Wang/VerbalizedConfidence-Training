@@ -51,6 +51,11 @@ class RLCRSplit(BaseAlgorithmConfig):
 
 
 @dataclass
+class RLCRSplitConfPureSFT(BaseAlgorithmConfig):
+    fine_tuned_algorithm: str | None = "rlcr_split_confpuresft"
+
+
+@dataclass
 class CoCA(BaseAlgorithmConfig):
     fine_tuned_algorithm: str | None = "coca"
 

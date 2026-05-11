@@ -151,6 +151,17 @@ class GRPOConfig(trl.GRPOConfig):
         default=2.0,
         metadata={"help": "Alpha used by alpha-based confidence scoring rewards; must be > 1."},
     )
+    conf_pure_sft_alpha: float = field(
+        default=0.3,
+        metadata={"help": "Weight of the confidence SFT loss used by RLCR_split_ConfPureSFT."},
+    )
+    conf_pure_sft_lambda: float = field(
+        default=0.3,
+        metadata={
+            "help": "Interpolation factor used by RLCR_split_ConfPureSFT confidence target: "
+            "target = lambda * rollout_correctness + (1-lambda) * group_success_rate."
+        },
+    )
     dcpo_lambda: float = field(
         default=0.5,
         metadata={

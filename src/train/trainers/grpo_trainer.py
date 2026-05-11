@@ -839,7 +839,7 @@ class BaseGRPOTrainer(Trainer, BaseTrainer):
             if gathered_completions:
                 group_answers = [extract_answer_value(text) for text in gathered_completions[group_start:group_end]]
 
-            group_confidences = confidence_values[group_start:group_end]
+            group_confidences = [round(float(x), 4) for x in confidence_values[group_start:group_end]]
 
             group_records.append(
                 {
@@ -864,6 +864,141 @@ class BaseGRPOTrainer(Trainer, BaseTrainer):
             with open(record_path, "a", encoding="utf-8") as handle:
                 for group_record in group_records:
                     handle.write(json.dumps(group_record, ensure_ascii=True) + "\n")
+
+    def _get_batch_answer_correctness(self, reward_outputs: dict[str, Any]) -> Optional[torch.Tensor]:
+        answer_correctness = reward_outputs.get("answer_correctness")
+        if isinstance(answer_correctness, torch.Tensor):
+            return answer_correctness.float()
+
+        reward_values = reward_outputs.get("optimization_rewards_per_func")
+        if (
+            isinstance(reward_values, torch.Tensor)
+            and reward_values.ndim == 2
+            and "accuracy" in self.optimization_reward_names
+        ):
+            accuracy_index = self.optimization_reward_names.index("accuracy")
+            if accuracy_index < reward_values.size(1):
+                return reward_values[:, accuracy_index].float()
+
+        return None
+
+    def _get_batch_confidence_scores(
+        self,
+        generation_outputs: dict[str, Any],
+        reward_outputs: dict[str, Any],
+    ) -> Optional[torch.Tensor]:
+        confidence_scores = reward_outputs.get("confidence_scores")
+        if isinstance(confidence_scores, torch.Tensor):
+            return confidence_scores.float()
+
+        completions_text = generation_outputs.get("completions_text")
+        if completions_text is None:
+            return None
+
+        confidence_values = [
+            0.0 if (value := extract_confidence_value(text)) is None else float(value)
+            for text in completions_text
+        ]
+        confidence_scores_local = torch.tensor(
+            confidence_values,
+            dtype=torch.float32,
+            device=self.accelerator.device,
+        )
+        return self.accelerator.gather_for_metrics(confidence_scores_local).float()
+
+    def _compute_batch_ece(
+        self,
+        targets: torch.Tensor,
+        confidence_scores: torch.Tensor,
+        n_bins: int = 10,
+    ) -> Optional[torch.Tensor]:
+        valid_mask = torch.isfinite(targets) & torch.isfinite(confidence_scores)
+        if not valid_mask.any():
+            return None
+
+        targets = targets[valid_mask].float().clamp(0.0, 1.0)
+        confidence_scores = confidence_scores[valid_mask].float().clamp(0.0, 1.0)
+        boundaries = torch.linspace(0.0, 1.0, n_bins + 1, device=confidence_scores.device)[1:-1]
+        bin_indices = torch.bucketize(confidence_scores, boundaries, right=True)
+
+        ece = torch.zeros((), dtype=torch.float32, device=confidence_scores.device)
+        total_count = confidence_scores.numel()
+        for bin_index in range(n_bins):
+            bin_mask = bin_indices == bin_index
+            if bin_mask.any():
+                bin_confidence = confidence_scores[bin_mask].mean()
+                bin_target = targets[bin_mask].mean()
+                bin_weight = bin_mask.float().mean()
+                ece = ece + bin_weight * torch.abs(bin_confidence - bin_target)
+        return ece if total_count > 0 else None
+
+    def _log_batch_calibration_metrics(
+        self,
+        mode: str,
+        generation_outputs: dict[str, Any],
+        reward_outputs: dict[str, Any],
+    ) -> None:
+        confidence_scores = self._get_batch_confidence_scores(generation_outputs, reward_outputs)
+        answer_correctness = self._get_batch_answer_correctness(reward_outputs)
+        if confidence_scores is None or answer_correctness is None:
+            return
+
+        if confidence_scores.shape != answer_correctness.shape:
+            return
+
+        valid_mask = torch.isfinite(confidence_scores) & torch.isfinite(answer_correctness)
+        if not valid_mask.any():
+            return
+
+        confidence_scores = confidence_scores[valid_mask].float().clamp(0.0, 1.0)
+        answer_correctness = answer_correctness[valid_mask].float().clamp(0.0, 1.0)
+        batch_ece = self._compute_batch_ece(answer_correctness, confidence_scores)
+        if batch_ece is None:
+            return
+
+        mean_confidence = confidence_scores.mean()
+        mean_accuracy = answer_correctness.mean()
+        self._metrics[mode]["reward_values/batch_accuracy"].append(mean_accuracy.item())
+        self._metrics[mode]["reward_values/batch_mean_confidence"].append(mean_confidence.item())
+        self._metrics[mode]["reward_values/batch_ece"].append(batch_ece.item())
+        self._metrics[mode]["reward_values/batch_abs_conf_acc_gap"].append(
+            torch.abs(mean_confidence - mean_accuracy).item()
+        )
+        self._metrics[mode]["reward_values/batch_brier"].append(
+            torch.square(confidence_scores - answer_correctness).mean().item()
+        )
+        self._metrics[mode]["reward_values/confidence_std"].append(confidence_scores.std(unbiased=False).item())
+        self._metrics[mode]["reward_values/confidence_unique_count"].append(
+            float(torch.unique(confidence_scores).numel())
+        )
+        _, confidence_counts = torch.unique(confidence_scores, return_counts=True)
+        self._metrics[mode]["reward_values/confidence_top1_share"].append(
+            confidence_counts.max().float().div(confidence_scores.numel()).item()
+        )
+        confidence_extreme_mask = (confidence_scores <= 0.01) | (confidence_scores >= 0.98)
+        self._metrics[mode]["reward_values/confidence_extreme_share"].append(
+            confidence_extreme_mask.float().mean().item()
+        )
+
+        group_success_rate = reward_outputs.get("group_success_rate")
+        if isinstance(group_success_rate, torch.Tensor) and group_success_rate.shape == valid_mask.shape:
+            group_success_rate = group_success_rate[valid_mask].float().clamp(0.0, 1.0)
+            group_ece = self._compute_batch_ece(group_success_rate, confidence_scores)
+            if group_ece is not None:
+                self._metrics[mode]["reward_values/batch_group_ece"].append(group_ece.item())
+                self._metrics[mode]["reward_values/batch_abs_conf_group_gap"].append(
+                    torch.abs(mean_confidence - group_success_rate.mean()).item()
+                )
+
+        confidence_targets = reward_outputs.get("confidence_targets")
+        if isinstance(confidence_targets, torch.Tensor) and confidence_targets.shape == valid_mask.shape:
+            confidence_targets = confidence_targets[valid_mask].float().clamp(0.0, 1.0)
+            target_ece = self._compute_batch_ece(confidence_targets, confidence_scores)
+            if target_ece is not None:
+                self._metrics[mode]["reward_values/batch_target_ece"].append(target_ece.item())
+                self._metrics[mode]["reward_values/batch_abs_conf_target_gap"].append(
+                    torch.abs(mean_confidence - confidence_targets.mean()).item()
+                )
 
     def compute_advantages(self, rewards: torch.Tensor):
         mean_grouped_rewards = rewards.view(-1, self.num_generations).mean(dim=1)
@@ -928,6 +1063,7 @@ class BaseGRPOTrainer(Trainer, BaseTrainer):
             self._metrics[mode][f"reward_values/{reward_func_name}"].append(mean_rewards)
         self._metrics[mode]["reward_total"].append(mean_grouped_rewards.mean().item())
         self._metrics[mode]["reward_std"].append(std_grouped_rewards.mean().item())
+        self._log_batch_calibration_metrics(mode, generation_outputs, reward_outputs)
 
         # Log prompt and completion texts
         num_completions_to_log = self.args.num_completions_to_log 
@@ -971,6 +1107,43 @@ class BaseGRPOTrainer(Trainer, BaseTrainer):
         per_token_loss = -torch.min(per_token_loss1, per_token_loss2)
         return per_token_loss, coef_1
 
+    def _log_token_entropy_metrics(
+        self,
+        mode: str,
+        per_token_entropies: torch.Tensor,
+        completion_mask: torch.Tensor,
+        answer_token_mask: torch.Tensor,
+        confidence_token_mask: torch.Tensor,
+    ):
+        def _masked_mean(values: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+            denom = mask.sum()
+            if denom.item() == 0:
+                return torch.tensor(float("nan"), dtype=values.dtype, device=values.device)
+            return (values * mask).sum() / denom
+
+        completion_mask = completion_mask.float()
+        answer_token_mask = answer_token_mask.float()
+        confidence_token_mask = confidence_token_mask.float()
+
+        completion_entropy = _masked_mean(per_token_entropies, completion_mask)
+        answer_entropy = _masked_mean(per_token_entropies, completion_mask * answer_token_mask)
+        confidence_entropy = _masked_mean(per_token_entropies, completion_mask * confidence_token_mask)
+        answer_present_ratio = (answer_token_mask.sum(dim=1) > 0).float().mean()
+        confidence_present_ratio = (confidence_token_mask.sum(dim=1) > 0).float().mean()
+
+        gathered_completion_entropy = self.accelerator.gather_for_metrics(completion_entropy)
+        self._metrics[mode]["token_entropy/completion_mean"].append(gathered_completion_entropy.nanmean().item())
+        gathered_answer_entropy = self.accelerator.gather_for_metrics(answer_entropy)
+        self._metrics[mode]["token_entropy/answer_mean"].append(gathered_answer_entropy.nanmean().item())
+        gathered_confidence_entropy = self.accelerator.gather_for_metrics(confidence_entropy)
+        self._metrics[mode]["token_entropy/confidence_mean"].append(gathered_confidence_entropy.nanmean().item())
+        gathered_answer_present_ratio = self.accelerator.gather_for_metrics(answer_present_ratio)
+        self._metrics[mode]["token_entropy/answer_present_ratio"].append(gathered_answer_present_ratio.nanmean().item())
+        gathered_confidence_present_ratio = self.accelerator.gather_for_metrics(confidence_present_ratio)
+        self._metrics[mode]["token_entropy/confidence_present_ratio"].append(
+            gathered_confidence_present_ratio.nanmean().item()
+        )
+
     def update_policy(self, model, inputs):
         # Log the metrics
         mode = "train" if self.model.training else "eval"
@@ -999,30 +1172,12 @@ class BaseGRPOTrainer(Trainer, BaseTrainer):
         per_token_logps, per_token_entropies = self._get_per_token_logps(
             model, input_ids, attention_mask, logits_to_keep, return_entropies=True
         )
-
-        def _masked_mean(values: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
-            denom = mask.sum()
-            if denom.item() == 0:
-                return torch.tensor(float("nan"), dtype=values.dtype, device=values.device)
-            return (values * mask).sum() / denom
-
-        completion_entropy = _masked_mean(per_token_entropies, completion_mask.float())
-        answer_entropy = _masked_mean(per_token_entropies, (completion_mask * answer_token_mask).float())
-        confidence_entropy = _masked_mean(per_token_entropies, (completion_mask * confidence_token_mask).float())
-        answer_present_ratio = (answer_token_mask.sum(dim=1) > 0).float().mean()
-        confidence_present_ratio = (confidence_token_mask.sum(dim=1) > 0).float().mean()
-
-        gathered_completion_entropy = self.accelerator.gather_for_metrics(completion_entropy)
-        self._metrics[mode]["token_entropy/completion_mean"].append(gathered_completion_entropy.nanmean().item())
-        gathered_answer_entropy = self.accelerator.gather_for_metrics(answer_entropy)
-        self._metrics[mode]["token_entropy/answer_mean"].append(gathered_answer_entropy.nanmean().item())
-        gathered_confidence_entropy = self.accelerator.gather_for_metrics(confidence_entropy)
-        self._metrics[mode]["token_entropy/confidence_mean"].append(gathered_confidence_entropy.nanmean().item())
-        gathered_answer_present_ratio = self.accelerator.gather_for_metrics(answer_present_ratio)
-        self._metrics[mode]["token_entropy/answer_present_ratio"].append(gathered_answer_present_ratio.nanmean().item())
-        gathered_confidence_present_ratio = self.accelerator.gather_for_metrics(confidence_present_ratio)
-        self._metrics[mode]["token_entropy/confidence_present_ratio"].append(
-            gathered_confidence_present_ratio.nanmean().item()
+        self._log_token_entropy_metrics(
+            mode,
+            per_token_entropies,
+            completion_mask,
+            answer_token_mask,
+            confidence_token_mask,
         )
 
         if self.beta != 0.0:

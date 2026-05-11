@@ -178,4 +178,5 @@ results/
 *.pyd
 data
 scripts/daily_exp/
+scripts/official/
 AAAexp
