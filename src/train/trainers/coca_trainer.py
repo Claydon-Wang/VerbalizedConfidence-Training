@@ -7,7 +7,7 @@ from math_verify import parse, verify
 
 from src.train.rewards.reward_functions import alpha_score_value, exact_match_score
 from src.train.trainers.grpo_trainer import BaseGRPOTrainer
-from src.train.trainers.trainer_utils import nanmax, nanmin, nanstd
+from src.train.trainers.trainer_utils import nanmax, nanmin
 
 
 class CoCATrainer(BaseGRPOTrainer):
@@ -106,8 +106,7 @@ class CoCATrainer(BaseGRPOTrainer):
     def _log_reward_metric_summaries(self, mode: str, reward_metric_names: list[str], reward_metric_values: torch.Tensor):
         for i, reward_func_name in enumerate(reward_metric_names):
             reward_values = reward_metric_values[:, i]
-            self._metrics[mode][f"reward_values/{reward_func_name}_mean"].append(torch.nanmean(reward_values).item())
-            self._metrics[mode][f"reward_values/{reward_func_name}_std"].append(nanstd(reward_values).item())
+            self._metrics[mode][f"reward_values/{reward_func_name}"].append(torch.nanmean(reward_values).item())
 
     def _parse_confidence_scores(self, completions):
         confidence_pattern = r"<confidence>(.*?)</confidence>"
@@ -357,18 +356,13 @@ class CoCATrainer(BaseGRPOTrainer):
         reward_metric_names = self.optimization_reward_names + self.monitoring_reward_names
         reward_metric_values = torch.cat([optimization_rewards_per_func, monitoring_rewards_per_func], dim=1)
         self._log_reward_metric_summaries(mode, reward_metric_names, reward_metric_values)
-        self._metrics[mode]["reward_values/group_success_rate"].append(
-            reward_outputs["group_success_rate"].mean().item()
-        )
-        self._metrics[mode]["reward_values/mean_confidence_prediction"].append(
-            reward_outputs["confidence_scores"].mean().item()
-        )
-        self._log_batch_calibration_metrics(mode, generation_outputs, reward_outputs)
-        self._log_rollout_success_rate_bucket_metrics(
+        self._log_batch_calibration_metrics(
             mode,
-            reward_outputs,
-            optimization_rewards_per_func,
-            confidence_advantages=confidence_advantages,
+            generation_outputs,
+            {
+                "optimization_rewards_per_func": optimization_rewards_per_func,
+                "confidence_scores": reward_outputs["confidence_scores"],
+            },
         )
         self._metrics[mode]["completions/answer_tokens_mean"].append(answer_mask.sum(1).float().mean().item())
         self._metrics[mode]["completions/confidence_tokens_mean"].append(confidence_mask.sum(1).float().mean().item())
