@@ -27,7 +27,7 @@ class TrainConfig:
     bf16: bool = True
     beta: float = 0.0
     eval_strategy: str = "steps"
-    eval_steps: int = 50
+    eval_steps: int = 10 # evaluate every 10 steps
     eval_on_start: bool = False
     format_pattern: str = "think_answer"
     gradient_accumulation_steps: int = 64
